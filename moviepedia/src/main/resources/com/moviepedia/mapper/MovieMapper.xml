@@ -1,0 +1,533 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  
+  
+  
+<mapper namespace="com.moviepedia.mapper.MovieMapper">
+	
+	<select id="read" resultType="com.moviepedia.domain.MovieVO">
+		SELECT * FROM tbl_movie WHERE movieCd = #{movieCd}
+	</select> 
+	
+	<update id="updateCommentCnt">
+	
+		UPDATE tbl_movie SET commentCnt = commentCnt + #{amount} WHERE movieCd = #{movieCd}
+	
+	</update>
+	
+
+	
+	<update id="insertMovieList" parameterType="java.util.List">
+	MERGE INTO tbl_movie m
+   	USING (
+    <foreach collection="list" item="movie"  separator="UNION">
+       SELECT 
+       	   #{movie.movieCd} as movieCd,
+           #{movie.movieNm} as movieNm,
+           #{movie.movieNmEn} as movieNmEn,
+           #{movie.prdtYear} as prdtYear,
+           #{movie.openDt} as openDt,
+           #{movie.typeNm} as typeNm,
+           #{movie.prdtStatNm} as prdtStatNm,
+           #{movie.nationAlt} as nationAlt,
+           #{movie.genreAlt} as genreAlt,
+           #{movie.repNationNm} as repNationNm,
+           #{movie.repGenreNm} as repGenreNm,
+           #{movie.companyCd} as companyCd,
+           #{movie.companyNm} as companyNm,
+           #{movie.directorDetail} as directorDetail,
+           #{movie.showTm} as showTm,
+           #{movie.actorDetail} as actorDetail,
+           #{movie.watchGradeNm} as watchGradeNm,
+           #{movie.posterUrl} as posterUrl,
+           #{movie.storyText} as storyText
+       FROM DUAL
+    </foreach>
+    ) d
+    ON (m.movieCd = d.movieCd)
+    WHEN MATCHED THEN
+   		UPDATE SET 
+   			m.movieNm = d.movieNm,
+            m.movieNmEn = d.movieNmEn,
+            m.prdtYear = d.prdtYear,
+            m.openDt = d.openDt,
+            m.typeNm = d.typeNm,
+            m.prdtStatNm = d.prdtStatNm,
+            m.nationAlt = d.nationAlt,
+            m.genreAlt = d.genreAlt,
+            m.repNationNm = d.repNationNm,
+            m.repGenreNm = d.repGenreNm,
+            m.companyCd = d.companyCd,
+            m.companyNm = d.companyNm,
+            m.directorDetail = d.directorDetail,
+            m.showTm = d.showTm,
+            m.actorDetail = d.actorDetail,
+            m.watchGradeNm = d.watchGradeNm,
+            m.posterUrl = d.posterUrl,
+            m.storyText = d.storyText,
+            m.updateDate = sysdate
+      WHEN NOT MATCHED THEN
+	    INSERT (
+	        m.movieCd,
+	        m.movieNm,
+	        m.movieNmEn,
+	        m.prdtYear,
+	        m.openDt,
+	        m.typeNm,
+	        m.prdtStatNm,
+	        m.nationAlt,
+	        m.genreAlt,
+	        m.repNationNm,
+	        m.repGenreNm,
+       		m.companyCd,
+	        m.companyNm,
+	        m.directorDetail,
+	        m.showTm,
+	        m.actorDetail,
+	        m.watchGradeNm,
+	        m.posterUrl,
+	        m.storyText,
+	        m.updateDate
+	    )
+	    VALUES (
+        	d.movieCd,
+	        d.movieNm,
+	        d.movieNmEn,
+	        d.prdtYear,
+	        d.openDt,
+	        d.typeNm,
+	        d.prdtStatNm,
+	        d.nationAlt,
+	        d.genreAlt,
+	        d.repNationNm,
+	        d.repGenreNm,
+	        d.companyCd,
+	        d.companyNm,
+	        d.directorDetail,
+	        d.showTm,
+	        d.actorDetail,
+	        d.watchGradeNm,
+	        d.posterUrl,
+	        d.storyText,
+	        sysdate
+	    )	       
+   
+	</update>
+	
+	<update id="insertMovie">
+	
+<!-- 		INSERT INTO tbl_movie (movieCd, movieNm, movieNmEn, prdtYear, openDt, typeNm, prdtStatNm, nationAlt, genreAlt, repNationNm, repGenreNm,  -->
+<!-- 					companyCd, companyNm, directorDetail, showTm, actorDetail, watchGradeNm, posterUrl, storyText, updateDate) -->
+<!-- 		VALUES (#{movieCd}, #{movieNm}, #{movieNmEn}, #{prdtYear}, #{openDt}, #{typeNm}, #{prdtStatNm}, #{nationAlt}, #{genreAlt}, #{repNationNm}, #{repGenreNm},  -->
+<!-- 					#{companyCd}, #{companyNm}, #{directorDetail}, #{showTm}, #{actorDetail}, #{watchGradeNm}, #{posterUrl}, #{storyText}, SYSDATE) -->
+					
+		MERGE INTO tbl_movie m
+   	USING (
+       SELECT 
+       	   #{movieCd} as movieCd,
+           #{movieNm} as movieNm,
+           #{movieNmEn} as movieNmEn,
+           #{prdtYear} as prdtYear,
+           #{openDt} as openDt,
+           #{typeNm} as typeNm,
+           #{prdtStatNm} as prdtStatNm,
+           #{nationAlt} as nationAlt,
+           #{genreAlt} as genreAlt,
+           #{repNationNm} as repNationNm,
+           #{repGenreNm} as repGenreNm,
+           #{companyCd} as companyCd,
+           #{companyNm} as companyNm,
+           #{directorDetail} as directorDetail,
+           #{showTm} as showTm,
+           #{actorDetail} as actorDetail,
+           #{watchGradeNm} as watchGradeNm,
+           #{posterUrl} as posterUrl,
+           #{storyText} as storyText
+       FROM DUAL
+    ) d
+    ON (m.movieCd = d.movieCd)
+    WHEN MATCHED THEN
+   		UPDATE SET 
+   			m.movieNm = d.movieNm,
+            m.movieNmEn = d.movieNmEn,
+            m.prdtYear = d.prdtYear,
+            m.openDt = d.openDt,
+            m.typeNm = d.typeNm,
+            m.prdtStatNm = d.prdtStatNm,
+            m.nationAlt = d.nationAlt,
+            m.genreAlt = d.genreAlt,
+            m.repNationNm = d.repNationNm,
+            m.repGenreNm = d.repGenreNm,
+            m.companyCd = d.companyCd,
+            m.companyNm = d.companyNm,
+            m.directorDetail = d.directorDetail,
+            m.showTm = d.showTm,
+            m.actorDetail = d.actorDetail,
+            m.watchGradeNm = d.watchGradeNm,
+            m.posterUrl = d.posterUrl,
+            m.storyText = d.storyText,
+            m.updateDate = sysdate
+      WHEN NOT MATCHED THEN
+	    INSERT (
+	        m.movieCd,
+	        m.movieNm,
+	        m.movieNmEn,
+	        m.prdtYear,
+	        m.openDt,
+	        m.typeNm,
+	        m.prdtStatNm,
+	        m.nationAlt,
+	        m.genreAlt,
+	        m.repNationNm,
+	        m.repGenreNm,
+       		m.companyCd,
+	        m.companyNm,
+	        m.directorDetail,
+	        m.showTm,
+	        m.actorDetail,
+	        m.watchGradeNm,
+	        m.posterUrl,
+	        m.storyText,
+	        m.updateDate
+	    )
+	    VALUES (
+        	d.movieCd,
+	        d.movieNm,
+	        d.movieNmEn,
+	        d.prdtYear,
+	        d.openDt,
+	        d.typeNm,
+	        d.prdtStatNm,
+	        d.nationAlt,
+	        d.genreAlt,
+	        d.repNationNm,
+	        d.repGenreNm,
+	        d.companyCd,
+	        d.companyNm,
+	        d.directorDetail,
+	        d.showTm,
+	        d.actorDetail,
+	        d.watchGradeNm,
+	        d.posterUrl,
+	        d.storyText,
+	        sysdate
+	    )	       
+		
+	</update>
+	
+	
+<!-- 	<resultMap type="com.moviepedia.domain.DisplayMovieDTO" id="displayMovieDTO"> -->
+
+<!-- 		<result property="avgStarRating" column="avgstarrating" /> -->
+<!-- 		<result property="userStarRating" column="userstarrating" /> -->
+	
+<!-- 		<association property="movieVO" javaType="com.moviepedia.domain.MovieVO"> -->
+		
+<!-- 			<id property="movieCd" column="moviecd"/> -->
+			
+<!-- 			<result property="movieNm" column="movienm"/> -->
+<!-- 			<result property="movieNmEn" column="movieNmEn"/> -->
+<!-- 			<result property="prdtYear" column="prdtyear"/> -->
+<!-- 			<result property="openDt" column="openDt"/> -->
+<!-- 			<result property="typeNm" column="typeNm"/> -->
+<!-- 			<result property="prdtStatNm" column="prdtStatNm"/> -->
+<!-- 			<result property="nationAlt" column="nationAlt"/> -->
+<!-- 			<result property="genreAlt" column="genreAlt"/> -->
+<!-- 			<result property="repNationNm" column="repNationNm"/> -->
+<!-- 			<result property="repGenreNm" column="repGenreNm"/> -->
+<!-- 			<result property="companyCd" column="companyCd"/> -->
+<!-- 			<result property="companyNm" column="companyNm"/> -->
+<!-- 			<result property="directorDetail" column="directorDetail"/> -->
+<!-- 			<result property="showTm" column="showTm"/> -->
+<!-- 			<result property="actorDetail" column="actorDetail"/> -->
+<!-- 			<result property="watchGradeNm" column="watchGradeNm"/> -->
+<!-- 			<result property="posterUrl" column="posterUrl"/> -->
+<!-- 			<result property="storyText" column="storyText"/> -->
+<!-- 			<result property="updateDate" column="updateDate"/> -->
+<!-- 			<result property="commentCnt" column="commentCnt"/> -->
+
+	
+<!-- 		</association> -->
+<!-- 	</resultMap> -->
+	
+	
+	<!-- 평가 페이지의 평균 별점 TOP 영화 리스트와 같은 메서드 사용 -->
+	<select id="getHighStarRatingMovieList" resultType="com.moviepedia.domain.DisplayMovieDTO" >
+
+	    SELECT iv4.movieCd, iv4.movieNm, iv4.prdtYear, iv4.repGenreNm, iv4.repNationNm, iv4.posterUrl, iv4.avgStarRating
+	    FROM (
+	        SELECT iv3.avgStarRating, iv3.cntStarRating, iv3.movieCd, iv3.movieNm, iv3.prdtYear, iv3.repGenreNm, iv3.repNationNm, iv3.posterUrl
+	        ,   (iv3.scaleAvgStarRating * 0.8 + iv3.scaleCntStarRating * 0.2) AS ordered
+	        FROM (
+	            SELECT iv2.movieCd, iv2.movieNm, iv2.prdtYear, iv2.repGenreNm, iv2.repNationNm, iv2.posterUrl,
+	                iv2.avgStarRating,
+	                CASE 
+	                WHEN MAX(iv2.avgStarRating) OVER() - MIN(iv2.avgStarRating) OVER() = 0 THEN 1
+	                ELSE (iv2.avgStarRating - MIN(iv2.avgStarRating) OVER()) / (MAX(iv2.avgStarRating) OVER() - MIN(iv2.avgStarRating) OVER()) 
+	                END AS scaleAvgStarRating,
+	                iv2.cntStarRating,
+	                CASE
+	                WHEN MAX(iv2.cntStarRating) OVER() - MIN(iv2.cntStarRating) over() = 0 THEN 1
+	                ELSE (iv2.cntStarRating - MIN(iv2.cntStarRating) OVER()) / (MAX(iv2.cntStarRating) OVER() - MIN(iv2.cntStarRating) over())
+	                END AS scaleCntStarRating
+	            FROM (
+	                SELECT  iv1.movieCd, iv1.movieNm, iv1.prdtYear, iv1.repGenreNm, iv1.repNationNm, iv1.posterUrl
+	                    , ROUND(AVG(s.starRating), 1) AS avgStarRating
+	                    , COUNT(s.starRating) AS cntStarRating 
+	                FROM (
+	                    SELECT m.movieCd, m.movieNm, m.prdtYear, m.repGenreNm, m.repNationNm, m.posterUrl
+	                    FROM tbl_movie m
+	                    WHERE m.movieCd NOT IN ( /* IN(NOT IN): 서브쿼리 다중 행 리턴되더라도 정상적으로 각 행 값 읽음 */
+	                        SELECT movieCd
+	                        FROM tbl_starRating s
+	                        WHERE userid = #{userid}) /* 로그인 유저가 평가한 영화 제외 */
+	                ) iv1 
+	                INNER JOIN tbl_starRating s /* INNER JOIN : 다른 유저들이 평가한 영화 중에서 출력 */           
+	                ON (iv1.movieCd = s.movieCd)
+	                <!-- HAVING COUNT(s.starRating) >= 2 -->
+	                GROUP BY iv1.movieCd, iv1.movieNm, iv1.prdtYear, iv1.repGenreNm, iv1.repNationNm, iv1.posterUrl
+	            ) iv2
+	        ) iv3
+	        ORDER BY ordered DESC
+	    ) iv4   
+		WHERE ROWNUM BETWEEN 1 AND 20
+		
+	</select>
+	
+	
+	<select id="getFavoritePeopleList" resultType="com.moviepedia.domain.PeopleVO">
+		SELECT ft.peopleCd, ft.peopleNm
+		 <choose>
+		 	<when test="roleNm.equals('감독')">
+		    	, ft.directorFilmos
+		 	</when>
+		 	<when test="roleNm.equals('배우')">    	
+		    	, ft.actorFilmos
+		 	</when>
+		</choose>			
+	    FROM (
+		    SELECT p.peopleCd, p.peopleNm, p.directorFilmos, p.actorFilmos
+    	<choose>
+		 	<when test="roleNm.equals('감독')">
+		    	, REGEXP_COUNT(p.directorFilmos, ',') + 1 AS filmoCnt
+		 	</when>
+		 	<when test="roleNm.equals('배우')">    	
+		    	, REGEXP_COUNT(p.actorFilmos, ',') + 1 AS filmoCnt
+		 	</when>
+		</choose>	
+		    FROM (
+		        SELECT REGEXP_SUBSTR(iv1.favoritePeopleList, '[^,]+', 1, level) AS favoritePeople
+		        FROM (
+		        	SELECT
+	        	<choose>
+				 	<when test="roleNm.equals('감독')">
+				    	 mem.favoriteDirectorList AS favoritePeopleList
+				 	</when>
+				 	<when test="roleNm.equals('배우')">    	
+				    	 mem.favoriteActorList AS favoritePeopleList
+				 	</when>
+				</choose>	       
+		            FROM tbl_member mem
+		            WHERE mem.userid = #{userid}
+		        ) iv1
+		        CONNECT BY REGEXP_SUBSTR(iv1.favoritePeopleList, '[^,]+', 1, level) IS NOT NULL
+		    ) iv2
+		    JOIN tbl_people p
+		    ON (iv2.favoritePeople = p.peopleCd)
+		) ft
+		<![CDATA[ 
+		WHERE ft.filmoCnt >= 5 /* 필모 5개 이상만 출력 */
+		]]>
+		ORDER BY DBMS_RANDOM.VALUE DESC /* 랜덤 정렬 */
+	</select>
+	
+		
+	<select id="getFavoritePeopleSMovieList" resultType="com.moviepedia.domain.DisplayMovieDTO" >
+		SELECT ft.*
+		FROM (
+			SELECT iv2.peopleCd AS favoritePeopleCd, iv2.peopleNm AS favoritePeopleNm
+				, m.movieCd, m.movieNm, m.prdtYear, m.repGenreNm, m.repNationNm, m.posterUrl
+			    , ROUND(AVG(s.starRating), 1) AS avgStarRating
+			FROM (
+			    SELECT iv1.peopleCd, iv1.peopleNm
+		    <choose>
+			 	<when test="roleNm.equals('감독')">
+			    	, REGEXP_SUBSTR(iv1.directorFilmos, '[^,]+', 1, level) AS peopleFilmo
+			 	</when>
+			 	<when test="roleNm.equals('배우')">    	
+			    	, REGEXP_SUBSTR(iv1.actorFilmos, '[^,]+', 1, level) AS peopleFilmo
+			 	</when>
+			</choose>
+			    FROM (
+			        SELECT p.peopleCd, p.peopleNm, p.directorFilmos, p.actorFilmos
+			        FROM tbl_people p
+			        WHERE peopleCd = #{peopleCd}
+			    ) iv1
+		    <choose>
+			 	<when test="roleNm.equals('감독')">
+	    	 		CONNECT BY	REGEXP_SUBSTR(iv1.directorFilmos, '[^,]+', 1, level) IS NOT NULL
+			 	</when>
+			 	<when test="roleNm.equals('배우')">    	
+			    	CONNECT BY	REGEXP_SUBSTR(iv1.actorFilmos, '[^,]+', 1, level) IS NOT NULL
+			 	</when>
+			</choose>
+			) iv2    
+			INNER JOIN tbl_movie m /* Movie 테이블에 있는 영화만 출력 */
+			ON (iv2.peopleFilmo = m.movieCd)
+			LEFT OUTER JOIN tbl_starRating s
+			ON (
+			m.movieCd = s.movieCd)
+			WHERE m.movieCd NOT IN (
+			    SELECT ss.movieCd
+			    FROM tbl_starRating ss
+			    WHERE ss.userid = #{userid}
+			    )
+			GROUP BY iv2.peopleCd, iv2.peopleNm, m.movieCd, m.movieNm, m.prdtYear, m.repGenreNm, m.repNationNm, m.posterUrl   	
+			ORDER BY DBMS_RANDOM.VALUE DESC /* 랜덤 정렬 */
+		) ft
+		WHERE ROWNUM BETWEEN 1 AND 20  
+	</select>
+	
+	<select id="getFavoriteGenreList" resultType="String">
+		SELECT  REGEXP_SUBSTR(iv1.favoriteGenreList, '[^,]+', 1, level) AS favoriteGenre
+		FROM (
+		    SELECT favoriteGenreList
+		    FROM tbl_member mem
+		    WHERE mem.userid = #{userid}
+		) iv1
+		CONNECT BY	REGEXP_SUBSTR(iv1.favoriteGenreList, '[^,]+', 1, level) IS NOT NULL
+		<!-- ORDER BY DBMS_RANDOM.VALUE DESC --> /* 랜덤 정렬 */
+	</select>
+	
+	<select id="getFavoriteGenreMovieList" resultType="com.moviepedia.domain.DisplayMovieDTO">
+		SELECT iv.*
+		FROM (	
+			SELECT m.movieCd, m.movieNm, m.prdtYear, m.genreAlt, m.repNationNm, m.posterUrl
+			     , ROUND(AVG(s.starRating), 1) AS avgStarRating
+			FROM tbl_movie m
+			LEFT OUTER JOIN tbl_starRating s
+			ON (m.movieCd = s.movieCd)
+			WHERE (m.genreAlt LIKE '%'||#{favoriteGenre1}||'%' 
+			        AND  m.genreAlt LIKE '%'||#{favoriteGenre2}||'%')
+			    AND m.movieCd NOT IN (
+			        SELECT ss.movieCd
+			        FROM tbl_starRating ss
+			        WHERE ss.userid = #{userid}) 
+			GROUP BY m.movieCd, m.movieNm, m.prdtYear, m.genreAlt, m.repNationNm, m.posterUrl
+			ORDER BY DBMS_RANDOM.VALUE DESC /* 랜덤 정렬 */
+		) iv
+		WHERE ROWNUM BETWEEN 1 AND 20 
+	</select>
+	
+	
+	
+	<select id="getReviewListByRandom" resultType="com.moviepedia.domain.DisplayMovieDTO">
+		
+		SELECT iv1.*, ROUND(AVG(s.starRating),1) AS avgStarRating
+		FROM (
+		    SELECT m.movieCd, m.movieNm, m.prdtYear, m.repGenreNm, m.repNationNm, m.posterUrl
+		    FROM tbl_movie m
+		    WHERE m.movieCd NOT IN (SELECT ss.movieCd FROM tbl_starRating ss WHERE ss.userid = #{userid})
+		    ORDER BY DBMS_RANDOM.RANDOM
+		) iv1
+		LEFT OUTER JOIN tbl_starRating s
+		ON (iv1.movieCd = s.movieCd)
+		<![CDATA[
+		WHERE ROWNUM <= #{additionalCnt}
+		]]>
+		GROUP BY iv1.movieCd, iv1.movieNm, iv1.prdtYear, iv1.repGenreNm, iv1.repNationNm, iv1.posterUrl
+		
+		
+	</select>
+	
+	<select id="getReviewListByHighStarRating" resultType="com.moviepedia.domain.DisplayMovieDTO" >
+		SELECT ft.movieCd, ft.movieNm, ft.prdtYear, ft.repGenreNm, ft.genreAlt, ft.repNationNm, ft.posterUrl, ft.avgStarRating
+		FROM (
+		    SELECT ROWNUM AS sequence, iv4.avgStarRating, iv4.cntStarRating, iv4.movieCd, iv4.movieNm, iv4.prdtYear, iv4.repGenreNm, iv4.genreAlt, iv4.repNationNm, iv4.posterUrl
+		    FROM (
+		        SELECT iv3.avgStarRating, iv3.cntStarRating, iv3.movieCd, iv3.movieNm, iv3.prdtYear, iv3.repGenreNm, iv3.genreAlt, iv3.repNationNm, iv3.posterUrl
+		        ,   (iv3.scaleAvgStarRating * 0.8 + iv3.scaleCntStarRating * 0.2) AS ordered
+		        FROM (
+		            SELECT iv2.movieCd, iv2.movieNm, iv2.prdtYear, iv2.repGenreNm, iv2.genreAlt, iv2.repNationNm, iv2.posterUrl,
+		                iv2.avgStarRating,
+		                CASE 
+		                WHEN MAX(iv2.avgStarRating) OVER() - MIN(iv2.avgStarRating) OVER() = 0 THEN 1
+		                ELSE (iv2.avgStarRating - MIN(iv2.avgStarRating) OVER()) / (MAX(iv2.avgStarRating) OVER() - MIN(iv2.avgStarRating) OVER()) 
+		                END AS scaleAvgStarRating,
+		                iv2.cntStarRating,
+		                CASE
+		                WHEN MAX(iv2.cntStarRating) OVER() - MIN(iv2.cntStarRating) over() = 0 THEN 1
+		                ELSE (iv2.cntStarRating - MIN(iv2.cntStarRating) OVER()) / (MAX(iv2.cntStarRating) OVER() - MIN(iv2.cntStarRating) over())
+		                END AS scaleCntStarRating
+		            FROM (
+		                SELECT  iv1.movieCd, iv1.movieNm, iv1.prdtYear, iv1.repGenreNm, iv1.genreAlt, iv1.repNationNm, iv1.posterUrl
+		                    , ROUND(AVG(s.starRating), 1) AS avgStarRating
+		                    , COUNT(s.starRating) AS cntStarRating 
+		                FROM (
+		                    SELECT m.movieCd, m.movieNm, m.prdtYear, m.repGenreNm, m.genreAlt, m.repNationNm, m.posterUrl
+		                    FROM tbl_movie m
+		                    WHERE m.movieCd NOT IN (
+		                        SELECT movieCd
+		                        FROM tbl_starRating s
+		                        WHERE userid = #{userid}) /* 로그인 유저가 평가한 영화 제외 */
+		                        <if test="! repGenreNm.equals('전체')">
+								AND m.repGenreNm IN #{repGenreNm}
+									/* 검색은 repGenreNm으로, 출력은 genreAlt로 */
+								</if>
+								<if test="! repNationNm.equals('전체')">
+								AND m.repNationNm IN #{repNationNm}
+								/* 검색도 repNationNm으로, 출력도 repNationNm로 */
+								</if>
+		                ) iv1 
+		                INNER JOIN tbl_starRating s /* INNER JOIN : 다른 유저들이 평가한 영화 중에서 출력 */           
+		                ON (iv1.movieCd = s.movieCd)
+		                <!-- HAVING COUNT(s.starRating) >= 2 -->
+		                GROUP BY iv1.movieCd, iv1.movieNm, iv1.prdtYear, iv1.repGenreNm, iv1.genreAlt, iv1.repNationNm, iv1.posterUrl
+		            ) iv2
+		        ) iv3
+		        ORDER BY ordered DESC
+		    ) iv4   
+		) ft    
+		WHERE ft.sequence BETWEEN #{currentSqnc} + 1 AND #{currentSqnc} + #{additionalCnt}
+		
+
+	</select>
+	
+	<select id="getReviewListByRepGenreNm" resultType="com.moviepedia.domain.DisplayMovieDTO" >
+	
+		
+		SELECT ft.sequence, ft.movieCd, ft.movieNm, ft.prdtYear, ft.repGenreNm, ft.genreAlt, ft.repNationNm, ft.nationAlt, ft.posterUrl   
+		    , ft.avgStarRating
+		FROM (
+		    SELECT ROWNUM AS sequence, iv2.*
+		    FROM (
+		        SELECT iv1.*
+		            , ROUND(AVG(s.starRating), 1) AS avgStarRating
+		        FROM (
+		            SELECT m.movieCd, m.movieNm, m.prdtYear, m.repGenreNm, m.genreAlt, m.repNationNm, m.nationAlt, m.posterUrl, m.updateDate
+		            FROM tbl_movie m
+		            WHERE m.movieCd NOT IN (SELECT ss.movieCd FROM tbl_starRating ss WHERE ss.userid = #{userid})
+		                   AND m.repGenreNm IN #{repGenreNm}
+		                   /* 검색은 repGenreNm으로, 출력은 genreAlt로 */
+		                  <if test="! repNationNm.equals('전체')">
+			               AND m.repNationNm IN #{repNationNm}
+			               </if>        
+		        ) iv1
+		        LEFT OUTER JOIN tbl_starRating s
+		        ON (iv1.movieCd = s.movieCd)
+		        GROUP BY  iv1.movieCd, iv1.movieNm, iv1.prdtYear, iv1.repGenreNm, iv1.genreAlt, iv1.repNationNm, iv1.nationAlt, iv1.posterUrl, iv1.updateDate  
+		        ORDER BY iv1.updateDate DESC   
+		    ) iv2
+		    ORDER BY sequence ASC
+		) ft
+		WHERE ft.sequence BETWEEN #{currentSqnc} + 1 AND #{currentSqnc} + #{additionalCnt}
+		
+	</select>
+	
+	
+	
+	
+	
+</mapper>

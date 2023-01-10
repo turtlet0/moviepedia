@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:security="http://www.springframework.org/schema/security"
+	xsi:schemaLocation="http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+<!-- 30.1.1 security-context.xml 별도 생성
+	: 스프링 시큐리티는 단독으로 설정 가능 -> 따로 작성하는 것이 좋음
+	Spring Bean Configuration File 또는 xml 파일로 생성
+	
+	https://pmadvisor.tistory.com/10 설정 참고 -->
+
+	<bean id="customAccessDenied" class="com.moviepedia.security.CustomAccessDeniedHandler"></bean>
+	
+	
+	
+	
+	<!-- 38.1.1 로그인 이후 성공/실패 처리
+		기존 CustomLoginSuccessHandler 이용하지 않고 SavedRequestAwareAuthenticationSuccessHandler 이용 -->
+	<bean id="customLoginSuccessHandler" class="com.moviepedia.security.CustomLoginSuccessHandler"></bean>
+	
+	<bean id="customLoginFailureHandler" class="com.moviepedia.security.CustomLoginFailureHandler"></bean>
+	
+	
+
+	<!-- 32.2.2 BCryptPasswordEncoder 클래스를 이용한 패스워드 보호
+			패스워드를 DB 저장 용도로 설계된 해시 함수로 특정 문자열을 암호화하고 이를 체크해줌. 원문 되돌리진 못함 -->
+	<!-- <bean id="customPasswordEncoder" class="org.zerock.security.CustomNoOpPasswordEncoder"></bean> -->
+	<!-- 암호화 가능 Encoder 이용 -->
+	<bean id="bcryptPasswordEncoder" class="org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder"></bean>
+	
+	
+	<!-- 33.2 CustomUserDetailsService 구성
+		: MyBatis 이용해 MeberVO와 같리 회원 처리하는 부분 구성되었다면 이를 이용해
+		스프링 시큐리티의 UserDetailsService를 구현하는 커스텀 클래스를 작성 가능
+		-> 이 클래스에 MemberMapper 타입의 인스턴스 주입받아서 실제 기능(비즈니스 로직) 구현 
+		 -->
+	<bean id="customUserDetailsService" class="com.moviepedia.security.CustomUserDetailsService"></bean>
+	
+	<!-- AuthenticationProvider 인터페이스 구현한 커스텀 클래스 등록 -->
+	<bean id="customAuthenticationProvider" class="com.moviepedia.security.CustomAuthenticationProvider"></bean>
+	
+	
+	
+	<!-- 30.1.2 스프링 시큐리티 동작하기 위해선 Authentication Manager라는 존재와
+		스프링 시큐리티 시작 지점 필요 -> 최소 설정 -->
+	<security:http auto-config="true" use-expressions="true" >
+		
+		<!-- <security:intercept-url pattern="/sample/all" access="permitAll"/>
+		
+		<security:intercept-url pattern="/sample/member" access="hasRole('ROLE_MEMBER')"/>
+		
+		<security:intercept-url pattern="/sample/admin" access="hasRole('ROLE_ADMIN')"/> -->
+		
+		<!-- <security:intercept-url pattern="/customLogin" access="isAnonymous()"/>
+		<security:intercept-url pattern="/customLogout" access="isAuthenticated()"/> -->
+			<!-- customLogout 접근 제한될 경우 customLogin 페이지로 자동 이동됨. -->
+<!-- 		<security:intercept-url pattern="/signUp" access="isAnonymous()"/> -->
+		<security:intercept-url pattern="/login" access="isAnonymous()"/>
+<!-- 		<security:intercept-url pattern="/review" access="isAuthenticated()"/> -->
+			<!-- tip) @PreAuthorize는 is~ 사용 불가. 여기 시큐리티 설정에서 지정해줘야함 -->
+		
+<!-- 		<security:access-denied-handler error-page="redirect:/"/> -->
+		<!-- access-denied-handler: 403 에러(권한 없는 경우) 페이지. 404, 500 등은 Spring Security 아닌 Spring 통해서 제어 -->
+		<security:access-denied-handler ref="customAccessDenied" />
+		
+<!-- 		<security:form-login login-page="/customLogin" login-processing-url="/login" authentication-failure-forward-url="/login"/> -->
+			<!-- login-page : GET 로그인 페이지 / login-processing-url : POST 로그인 처리 페이지 -->
+		<security:form-login login-page="/login"  login-processing-url="/login"  
+				authentication-success-handler-ref="customLoginSuccessHandler" 
+				authentication-failure-handler-ref="customLoginFailureHandler" />
+	<!-- * login-page: 로그인 페이지의 GET/URI를 지정. 작성하지 않으면 자체 제공되는 로그인 페이지를 출력함
+		원하는 URI를 지정하고, Controller에서 이 URI에대한 메서드를 작성해 보여줄 JSP 페이지를 Return하면 됨
+		login페이지 URI를 login으로 할때 주의점) defulat(작성x)의 경우 URI도 /login이나 Controller에 작성한 @GetMapping("/login") 메서드와 무관하게 자체 제공한 페이지가 출력됨   
+	 	URI를 /login으로 하고 원하는 페이지를 추력하기 위해선 login-page="/login" 작성해줘야함 -->
+<!-- 	* default-target-url :  로그인 성공 시 전송할 URL. 만약 성공 시 핸들러로 전송 URL 제어하게되면 필요없어짐 -->
+<!-- 	* authentication-failure-url :  로그인 실패 시 전송할 URL(default: /login?error). 만약 실패 시 핸들러로 전송 URL 제어하게되면 필요없어짐 -->
+			
+			
+			
+		<!-- 35.1 DB 이용한 자동 로그인
+			persistent_logins 테이블 생성 후엔 별도 설정 없이 data-source-ref만 지정하면 됨 -->
+		<security:remember-me data-source-ref="dataSource" token-validity-seconds="604800"/>
+			<!-- 해당 dataSource 이름의 DB에서 정해진 이름의 테이블인 persistent_logins 찾는 것 -->
+			
+			
+		<!-- 31.6 로그아웃 처리 
+			: 로그인과 마찬가지로 특정 URI 지정하고, 로그아웃 처리 후 직접 로직 처리할 수 있는 핸들러 등록 가능 -->
+		<!-- <security:logout logout-url="/customLogout" invalidate-session="true"/>	 -->
+			<!-- invalidate-session="true" : 세션 무효화 설정 -->		
+		<!-- 35.1.2 로그아웃 시 쿠키 삭제 -->
+		<!-- <security:logout logout-url="/customLogout" invalidate-session="true" delete-cookies="remember-me,JSESSIONID" logout-success-url="/"/> -->
+		<security:logout invalidate-session="true" delete-cookies="remember-me,JSESSIONID" logout-success-url="/" />
+	</security:http>
+	
+	
+	<security:authentication-manager>
+		
+		<security:authentication-provider user-service-ref="customUserDetailsService">
+
+			<!-- <security:jdbc-user-service data-source-ref="dataSource"/> -->
+			<!-- <security:jdbc-user-service data-source-ref="dataSource"
+				users-by-username-query="SELECT userid, userpw, enabled FROM tbl_member WHERE userid =?"
+				authorities-by-username-query="SELECT userid, auth FROM tbl_member_auth WHERE userid=?"/> -->
+			
+			<!-- <security:password-encoder ref="customPasswordEncoder"/> -->
+			<!-- bcryptPasswordEncoder 클래스를 security의 password encoder 기본 클래스로 지정한 것
+				passwordEncoder 선언 시 bcryptPasswordEncoder가 불려나오게 됨
+				(?) default가 bcrypt? -->
+			<security:password-encoder ref="bcryptPasswordEncoder"/>
+				<security:password-encoder  />
+		</security:authentication-provider>
+		
+		<security:authentication-provider ref="customAuthenticationProvider"/>
+		
+	</security:authentication-manager>
+</beans>

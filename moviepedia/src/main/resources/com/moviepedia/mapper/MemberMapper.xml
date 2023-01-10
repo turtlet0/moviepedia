@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.moviepedia.mapper.MemberMapper">
+
+	<resultMap type="com.moviepedia.domain.MemberVO" id="memberMap">
+	
+		<id property="userid" column="userid"/>
+		
+		<result property="userpw" column="userpw"/>
+		<result property="userName" column="username"/>
+		<result property="userIntroduction" column="userintroduction"/>
+		
+		<result property="enabled" column="enabled"/>
+		<result property="accountNonLocked" column="accountnonlocked"/>
+			
+		<result property="regDate" column="regdate"/>
+		<result property="updateDate" column="updatedate"/>
+		
+		<result property="randomString" column="randomstring"/>
+		
+		<collection property="authList" resultMap="authMap"></collection>
+		
+	</resultMap>
+	
+	<resultMap type="com.moviepedia.domain.AuthVO" id="authMap">
+	
+<!-- 		<id property="userid" column="userid"/> -->
+		<result property="userid" column="userid"/>
+		<result property="auth" column="auth"/>
+	
+	</resultMap>
+
+	<select id="read" resultMap="memberMap">
+		SELECT mem.userid, mem.userpw, mem.username, mem.userintroduction, mem.enabled, 
+			mem.accountnonlocked, mem.regdate, mem.updatedate, mem.randomstring, auth.auth
+		FROM tbl_member mem LEFT OUTER JOIN tbl_member_auth auth
+		ON mem.userid = auth.userid
+		WHERE mem.userid = #{userid}
+	</select>
+	
+	<select id="readByRandomString" resultMap="memberMap">
+		SELECT mem.userid, mem.userpw, mem.username, mem.userintroduction, mem.enabled, 
+			mem.accountnonlocked, mem.regdate, mem.updatedate, mem.randomstring, auth.auth
+		FROM tbl_member mem 
+		LEFT OUTER JOIN tbl_member_auth auth
+		ON mem.userid = auth.userid
+		WHERE mem.randomstring = #{randomstring}
+	</select>
+	
+	
+	<insert id="insert">
+		INSERT ALL
+			INTO tbl_member (userid, userpw, username, randomstring) VALUES(#{userid}, #{userpw}, #{userName}, #{randomString})
+			INTO tbl_member_auth (userid, auth) VALUES(#{userid}, 'ROLE_MEMBER')
+		SELECT * FROM DUAL
+	</insert>
+	
+	<select id="checkUseridDuplicate" resultType="int">
+		SELECT COUNT(userid) 
+		FROM tbl_member 
+		WHERE userid = #{userid}
+	
+	</select>
+	
+	
+	<update id="updateFailureCnt">
+		UPDATE tbl_member
+		SET failureCnt = failureCnt + 1
+		WHERE userid = #{userid}
+	</update>
+	
+	<update id="resetFailureCnt">
+		UPDATE tbl_member
+		SET failureCnt = 0
+		WHERE userid = #{userid}
+	</update>
+	
+	<select id="getFailureCntAccountNonLocked" resultType="com.moviepedia.domain.MemberVO">
+		SELECT userid, failureCnt, accountNonLocked
+		FROM tbl_member
+		WHERE userid = #{userid}
+	</select>
+	
+	<update id="changeAccountNonLocked">
+		UPDATE tbl_member
+		SET accountnonlocked = (CASE accountnonlocked WHEN '0' THEN '1' ELSE '0' END),
+			failureCnt = (CASE accountnonlocked WHEN '0' THEN 0 ELSE failureCnt END)
+		WHERE userid = #{userid}
+	</update>
+	
+	
+	
+	<update id="updatePassword">
+		UPDATE tbl_member
+		SET userpw = #{userpw}
+		WHERE userid = #{userid}
+	
+	</update>
+	
+
+	<update id="testUpdate">
+	
+		UPDATE tbl_member SET randomString = #{randomString}, updatedate = SYSDATE
+		WHERE userid = #{userid}
+		
+	</update>
+	
+	<select id="readList" resultMap="memberMap">
+		SELECT mem.userid, userpw, username, enabled, regdate, updatedate, randomstring, auth
+		FROM tbl_member mem LEFT OUTER JOIN tbl_member_auth auth
+		ON mem.userid = auth.userid
+	</select>
+	
+	<delete id="remove">
+		DELETE FROM tbl_member WHERE userid = #{userid}
+	</delete>
+	
+	<delete id="removeAuthList">
+		DELETE FROM tbl_member_auth WHERE userid = #{userid}
+	</delete>
+	
+	
+	<update id="updateUserNameNIntroduction">
+	
+		UPDATE tbl_member
+		SET 
+		userName = #{userName},
+		userIntroduction = #{userIntroduction},
+		updateDate = SYSDATE
+		WHERE userid = #{userid}
+		
+		<selectKey keyProperty="userName,userIntroduction" resultType="com.moviepedia.domain.MemberVO"  order="AFTER">
+			SELECT userName, userIntroduction FROM tbl_member WHERE userid = #{userid}
+		</selectKey>
+		
+
+	</update>
+	
+	
+	
+	
+</mapper>

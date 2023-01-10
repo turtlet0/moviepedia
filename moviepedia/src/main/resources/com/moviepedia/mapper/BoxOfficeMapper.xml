@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.moviepedia.mapper.BoxOfficeMapper">
+
+	<resultMap type="com.moviepedia.domain.BoxOfficeWithStarDTO" id="boxOfficeWithStarDTO">
+	
+		<id property="showDate" column="showdate"/>
+		<id property="movieCd" column="moviecd"/>
+		
+		<result property="rank" column="rank"/>
+		<result property="movieNm" column="movienm"/>
+		<result property="openDt" column="opendt"/>
+		
+		
+		<result property="audiAcc" column="audiacc"/>
+		<result property="avgStarRating" column="avgstarrating"/>
+		<result property="userStarRating" column="userstarrating"/>
+		
+		<result property="posterUrl" column="posterurl"/>
+		<result property="prdtYear" column="prdtyear"/>
+		<result property="repNationNm" column="repnationnm"/>
+		
+
+<!-- 		<association property="boxOfficeVO" javaType="com.moviepedia.domain.BoxOfficeVO"> -->
+<!-- 			<id property="showDate" column="showdate"/> -->
+<!-- 			<id property="movieCd" column="moviecd"/> -->
+			
+<!-- 			<result property="rank" column="rank"/> -->
+<!-- 			<result property="movieNm" column="movienm"/> -->
+<!-- 			<result property="openDt" column="opendt"/> -->
+<!-- 			<result property="audiAcc" column="audiacc"/> -->
+			
+
+<!-- 		</association> -->
+	</resultMap>
+
+
+	<select id="getBoxOfficeWithStarList" resultType="com.moviepedia.domain.BoxOfficeWithStarDTO">
+
+		SELECT DISTINCT b.rank, b.movieCd, b.movieNm, b.openDt, b.audiCnt, b.audiAcc, b.showDate
+			, m.posterUrl, m.prdtYear, m.repNationNm
+<!-- 		    , NVL(ROUND(AVG(s.starRating) OVER(PARTITION BY s.movieCd),1), 0) AS avgStarRating -->
+		    , ROUND(AVG(s.starRating) OVER(PARTITION BY s.movieCd),1) AS avgStarRating
+		    <!-- ?) NVL(, 0(or 0.0)) 이용 시 List에 제대로 안담김. 몇몇 행만 담김... to_number, cast도 안됨 
+		    	=> 반환되는 데이터 타입의 문제 아닐까? 
+		    	: 어차피 DTO엔 0.0으로 담기므로 할 필요없음.. -->
+		 	<if test="userid neq null"> 
+			    , (SELECT ss.starRating FROM tbl_starRating ss WHERE ss.userid = #{userid} AND ss.movieCd = b.movieCd) AS userStarRating
+		 	</if>
+		FROM tbl_boxOffice b
+		JOIN tbl_movie m
+		ON (b.movieCd = m.movieCd)
+		LEFT OUTER JOIN tbl_starRating s
+		ON (b.movieCd = s.movieCd)
+		WHERE b.showDate = #{showDate} 
+		ORDER BY rank ASC
+		 
+	</select>
+	
+	
+	<update id="insertBoxOfficeList" parameterType="java.util.List">
+		MERGE INTO tbl_boxOffice b
+	   	USING (
+	    <foreach collection="list" item="boxOffice"  separator="UNION">
+	       SELECT 
+	       	   #{boxOffice.showDate} as showDate,
+	           #{boxOffice.rank} as rank,
+	           #{boxOffice.movieCd} as movieCd,
+	           #{boxOffice.movieNm} as movieNm,
+	           #{boxOffice.openDt} as openDt,
+	           #{boxOffice.audiCnt} as audiCnt,
+	           #{boxOffice.audiAcc} as audiAcc
+	       FROM DUAL
+	    </foreach>
+	    ) d
+	    ON (b.showDate = d.showDate AND b.movieCd = d.movieCd)
+	    WHEN MATCHED THEN
+	   		UPDATE SET 
+	            b.rank = d.rank,
+	            b.movieNm = d.movieNm,
+	            b.openDt = d.openDt,
+	            b.audiCnt = d.audiCnt,
+	            b.audiAcc = d.audiAcc,
+	            b.updateDate = SYSDATE
+	      WHEN NOT MATCHED THEN
+		    INSERT (
+		        b.showDate,
+		        b.rank,
+		        b.movieCd,
+		        b.movieNm,
+		        b.openDt,
+		        b.audiCnt,
+		        b.audiAcc,
+		        b.updateDate
+		    )
+		    VALUES (
+	        	d.showDate,
+		        d.rank,
+		        d.movieCd,
+		        d.movieNm,
+		        d.openDt,
+		        d.audiCnt,
+		        d.audiAcc,
+		        SYSDATE
+		    )	       
+	   
+	</update>
+
+
+
+</mapper>

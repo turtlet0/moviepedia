@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  
+<mapper namespace="com.moviepedia.mapper.LikeMapper">
+
+	<insert id="insert">
+	
+		INSERT INTO tbl_like (likeCd, commentCd, movieCd, userid)
+		VALUES (seq_like.nextval, #{commentCd}, #{movieCd}, #{userid})
+		
+	</insert>
+	
+	<select id="read" resultType="com.moviepedia.domain.LikeVO">
+	
+		SELECT * FROM tbl_like WHERE likeCd = #{likeCd}
+		
+	</select>
+	
+	<select id="readUser" resultType="com.moviepedia.domain.LikeVO">
+	
+		SELECT * FROM tbl_like
+		WHERE userid = #{userid} 
+		AND commentCd = #{commentCd}
+		
+	</select>
+	
+	<select id="getUserLikeCdList" resultType="long">
+	
+		SELECT likeCd
+		FROM tbl_like
+		WHERE userid = #{userid}
+	</select>
+	
+	
+	<delete id="delete" >
+	
+		DELETE FROM tbl_like WHERE likeCd = #{likeCd}
+		
+		
+		
+	</delete>
+	
+	<delete id="deleteByCommentCd">
+	
+		DELETE FROM tbl_like WHERE commentCd = #{commentCd}
+		
+	</delete>
+	
+	<select id="getCountByCommentCd" resultType="int">
+		
+		SELECT COUNT(likeCd) FROM tbl_like WHERE commentCd = #{commentCd}
+		
+	</select>
+	
+	
+
+	
+
+
+</mapper>

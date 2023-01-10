@@ -1,0 +1,1041 @@
+/* COMMON */
+	/* 컬러 */
+:root {
+	/* 별점 */
+  --color-gold: #ffc41f;
+  --color-gold-light: #ffd560;
+  
+  --color-lightgray: #fcfcfc;
+  --color-text-gray: #747580;
+  --color-border-gray:#e4e4e4;
+  
+  
+}
+
+.body__container {
+    font-family: 'Roboto', sans-serif;
+    font-size: 16px;
+    font-weight: 400;
+    color: #333;
+}
+
+/* 4-5 a태그 기본적으로 밑줄 존재 > 사용 x 설정 */
+a {
+    text-decoration: none;
+}
+
+/* 3-2 전역 스타일: 반복적으로 사용되는 스타일, 내용 > 미리 정의해 일부만 변경해 사용하는 것이 좋다.(전역적으로 사용) */
+/* 3-2 css에 미리 정의해놓고 html에서 사용하는 개념 */
+/* BTN */
+.btn {
+    height: 34px;
+    background: #eee linear-gradient(to bottom, var(--color-lightgray), #eee);
+    border: 1px solid #d5d5d5;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.5;
+    cursor: pointer;  
+    box-sizing: border-box;
+    position: relative;
+    color: #333;
+}
+.btn:hover::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,.07);
+}
+.btn.btn--primary {
+    border: 1px solid #65b836;
+    color: #fff;
+    background: #55a532 linear-gradient(#91dd70, #55ae2e)
+}
+
+/* INPUT TEXT */
+.input--text {
+    height: 34px;
+    padding: 0 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    box-sizing: border-box;
+    outline: none;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,.075);
+    font-size: 16px;
+}
+.input--text:focus {
+    border-color: #51a7e8;
+/*   , 통해 다중 그림자 적용가능 */
+    box-shadow:inset 0 1px 2px rgba(0,0,0,.075),
+               0 0 5px rgba(81,167,232,0.5);
+}
+/* 3-5 input-placeholder는 표준기술이 아니다. 그러나 vendor prefix 통해 특정 브라우저에서 동작하도록 할수있다.
+vendor prefix : 브라우저 업체별 접두사 ex)크롬: -webkit- / IE : -ms- / 파이어폭스 : -ms- /오페라 : -o- */
+/* 이러한 접두사 이용하면 각 브라우저가 표준은 아니지만 실험적으로 제공하는 기능 사용할 수 있음 */
+.input--text::-webkit-input-placeholder { 
+    color: #cacaca;
+}
+.input--text::-ms-input-placeholder { 
+    color: #cacaca;
+}
+.input--text::-moz-input-placeholder { 
+    color: #cacaca;
+}
+
+
+/* FLOAT CLEARFIX */
+.clearfix::after {
+    content:"";
+    clear: both;
+    display: block;
+}
+/* 4.6 매번 float 속성 부여하지 않고 클래스로 정의해 반복 사용하는게 좋다. */
+.float--left {
+    float: left;
+}
+.float--right {
+    float: right;
+}
+
+.color-white {
+	background-color: #FFFFFF;
+}
+
+.color-lightgray {
+	background-color: var(--color-lightgray);
+}
+
+.border {
+	border: 1px solid var(--color-border-gray);
+}
+
+.img-border {
+	border: 1px solid rgb(234, 233, 232);
+	border-radius: 5px;
+	box-sizing: border-box;
+	overflow: hidden;
+}
+
+/* -------------- 정렬 ---------------------------- */
+.margin--top {
+	margin-top: 50px;
+}
+.margin--top30 {
+	margin-top: 30px;
+}
+.margin--top20 {
+	margin-top: 20px;
+}
+.margin--top10 {
+	margin-top: 10px;
+}
+.margin--top7 {
+	margin-top: 7px;
+}
+.margin--top5 {
+	margin-top: 5px;
+}
+.margin--bottom {
+	margin-bottom: 40px;
+}
+.margin--bottom40 {
+	margin-bottom: 40px;
+}
+.margin--bottom30 {
+	margin-bottom: 30px;
+}
+.margin--bottom20 {
+	margin-bottom: 20px;
+}
+.margin--bottom15 {
+	margin-bottom: 15px;
+}
+.margin--bottom10 {
+	margin-bottom: 10px;
+}
+.margin--bottom7 {
+	margin-bottom: 7px;
+}
+.margin--bottom5 {
+	margin-bottom: 5px;
+}
+.margin--bottom3 {
+	margin-bottom: 3px;
+}
+
+.margin--right {
+	margin-right: 15px;
+}
+.margin--right5 {
+	margin-right: 5px;
+}
+.margin--right7 {
+	margin-right: 7px;
+}
+.margin--right10 {
+	margin-right: 10px;
+}
+.margin--right15 {
+	margin-right: 15px;
+}
+.margin--right20 {
+	margin-right: 20px;
+}
+.margin--right30 {
+	margin-right: 30px;
+}
+
+.margin--left10{
+	margin-left: 10px;
+}
+.margin--left15{
+	margin-left: 15px;
+}
+.margin--left20{
+	margin-left: 20px;
+}
+
+.padding--v5 {
+	padding-top: 5px;
+	padding-bottom: 5px;
+}
+.padding--h5 {
+	padding-left: 5px;
+	padding-right: 5px;
+}
+.padding--bottom10 {
+	padding-bottom: 10px;
+}
+.padding--bottom5 {
+	padding-bottom: 5px;
+}
+
+.padding--top5{
+	padding-top: 5px;
+}
+.padding--top10{
+	padding-top: 10px;
+}
+
+.width--100 {
+	width: 600px;
+	flex-grow: 1;
+}
+
+.text--ellipsis {
+	width: 100%;
+	overflow: hidden;  		
+	text-overflow: ellipsis; 
+	/* 텍스트 생략
+	* https://devbirdfeet.tistory.com/140
+	*/
+	
+}
+.position--relative{
+	position:relative;
+	
+}
+
+.font--bold{
+	/* font: font-style font-variant font-weight font-size/line-height font-family */
+	font-size: 17px;
+	font-weight: 700;
+}
+.border{
+	border: 1px solid rgb(229, 229, 229);
+}
+.border-box{
+	border: 1px solid rgb(229, 229, 229);
+	border-radius: 6px;
+	
+}
+.border--top {
+	border-top: 1px solid rgb(229, 229, 229);
+}
+
+.border--bottom {
+	border-bottom: 1px solid rgb(229, 229, 229);
+}
+
+.border--right {
+	border-right: 1px solid rgb(229, 229, 229);	
+}
+
+
+.display--block {
+	display: block;
+}
+
+.line--height {
+	height: 25px;
+	line-height: 25px;
+}
+
+.textAlign--center{
+	text-align: center;
+}
+
+.color--red{
+	color:red;
+}
+.color--orange{
+	color: orange;
+}
+
+.text {
+	white-space: pre-wrap;
+    line-height: 22px;
+}
+/* -------------- 정렬 ---------------------------- */
+
+
+
+
+
+
+/* ------------------------------------------------- */
+/* HEADER */
+header.header {
+
+	position: fixed;
+	height: 50px;
+	top: 0;
+	z-index:9999;
+	background-color: #FFFFFF;
+	width: 100%;
+	
+    border-bottom: 1px solid var(--color-border-gray);
+    /* 4-2 색상의 경우. 반복되는 문자는 세개로 단축가능 FFFFF > FFF */
+}
+header.header div {
+	align-items: center;
+	margin-top:1px;
+}
+/* .section 생략됨 > 그러나 .section .inner 의 지정은 받는다 */
+.header .inner {
+    padding-top: 5px;
+}
+  /* 4-3 inner를 중앙정렬용으로 사용했기때문에 inner를 부모요소로 선택하는것 연관성 부족해보인다.
+  inner 뛰어넘고 header에서 바로 후손선택자 정의함 */
+.header .menu-group {
+    display: flex;
+    align-items: center;
+    /* 4-3 100% :  부모요소의 높이의 100%만큼이라는 뜻 */
+    height: 100%;
+}
+.logo img{
+	max-height: 27px;
+/* 	max-width: 151px; */
+	aspect-ratio: 542 / 71;
+
+    margin-right: 10px;
+    margin-left: 10px;
+    margin-top:3px;
+
+}
+.header .logo img {
+    /* 4-4 CSS의 background에서 logo img 입력 */
+}
+
+
+
+/* Ch.4-5 오른쪽 콘텐츠 구조 */
+/* 4-5 메뉴 검색 버튼 순이 아님. 뷰포트 줄였을때 수직으로 안내되는데 이때 버튼 검색 메뉴 순
+이 순서대로 작업할 것 / 수평 구조에서의 순서는 쉽게 변경가능하므로 수직 구조를 우선으로 */
+/* Ch.4-6 Header - 좌우 분할, 요소 정렬과 순서 */
+header .sign-group {
+    display: flex;
+    height: 100%;
+    align-items: center;
+}
+
+/* Search-form */
+/* 4-7 id는 고유하므로 상위선택자 생략해도된다 */
+#search-form {
+    margin-right: 12px;
+}
+#search {
+    width: 240px;
+    font-size: 14px;
+}
+/* 4-7 submit 버튼 지정 위해 클래스 지정하는 것 비효율적 */
+/* + : 형제선택자(다음에 있는 ~) / [] : 속성 선택자  */
+#search-form > [type="submit"] {
+    /* 4-7 submit 버튼 화면에서 사라지게 */
+    display: none;
+}
+
+#searchDrop {
+	width: 240px;
+	z-index: 9999;
+	background-color: #fff;
+	margin-top: 10px;
+	border-top: 1px solid var(--color-border-gray);
+	border-radius: 5px;
+	line-height: 1.8; /* 폰트 사이즈의 배수 */
+}
+
+
+#searchDrop > li:hover {
+	background-color: var(--color-lightgray);
+}
+
+.searchQueryBtn {
+	cursor: pointer;
+}
+
+header .btn-group {
+    /* 4-7 inline화된 버튼을 수평 정렬함으로써 inline요소간의 띄어쓰기 제거 효과 노림 */
+    display: flex;
+}
+header .btn-group .sign-in {
+    margin-right: 4px;
+} 
+
+
+
+/*/ HEADER */
+/* ------------------------------------------------- */
+
+/* Center */
+/* ------------------------------------------------- */
+main {
+	margin-top: 60px;
+	
+	/* background-color: var(--color-lightgray); */
+}
+/* SECTION & INNER  */
+.section {
+    position: relative;
+}
+/* 4-3  inner : 요소들을 가운데 정렬하기 위한 클래스로 지정한것 */
+.section .inner {
+    max-width: 1000px;
+    min-width: 600px;
+    /* 4-3 가운데 정렬 - margin 이용 / 가로사이즈 정의 필수 */
+    margin: 0 auto;
+    box-sizing: border-box;
+}
+
+.section .center .inner {
+	
+    max-width: 1000px;
+    min-width: 600px;
+    /* 4-3 가운데 정렬 - margin 이용 / 가로사이즈 정의 필수 */
+    margin: 0 auto;
+    box-sizing: border-box;
+    padding-left: 15px;
+    
+}
+.section .center .inner > div {
+	width: 100%;
+	
+}
+
+.section .center .innerFix {
+	
+    max-width: 800px;
+    min-width: 600px;
+    /* 4-3 가운데 정렬 - margin 이용 / 가로사이즈 정의 필수 */
+    margin: 0 auto;
+    box-sizing: border-box;
+     padding-left: 15px;
+    
+}
+.section .center .innerFix > div {
+	width: 100%;
+	
+}
+/* 좋아요 */
+.likeActive {
+	color: red;
+}
+
+/* 코멘트 */
+ul.commentList {
+	list-style: none;
+
+	
+}
+li.commentLi {
+//	float: left;
+	background-color: rgb(242, 242, 242); 
+	border-radius: 15px;
+
+}
+
+/* 포스터 */
+.poster img {
+	width: 240px;
+}
+
+.reviewPoster img {
+	width: 90px;
+	aspect-ratio: 144 / 206;
+}
+
+.peopleSMoviePoster img {
+	width: 75px;
+	aspect-ratio: 144 / 206;
+}
+
+.commentMoviePoster img {
+	width: 90px;
+	aspect-ratio: 144 / 206;
+}
+
+
+
+ 
+/* 무한 스크롤 참고 */ 
+/*  body {height:2000px}
+.box {background:blue; height:200px; width:200px;margin:0 auto;}
+.box:nth-child(odd) {background:red;}
+.box:first-child {background:purple;}
+.pagination {text-align:center;}
+.infinite {
+  counter-reset: section;
+} */
+/* .list {
+  text-align:center;
+} */
+/* .list:before {
+ 	counter-increment: section;
+  content: counter(section);  
+  color:black;
+ margin:0 auto;
+  font-size: 40px;
+}  */
+
+/* 로딩 바 */
+.loading{
+  border:0;
+  width:40px;
+  padding:0px;
+  margin-top: 0px;
+  margin-left: calc(50% - 40px);
+  margin-left: -webkit-calc(50% - 40px);
+  margin-left: -moz-calc(50% - 40px);
+  background:#red;
+  
+  display:none;
+}
+
+.spin {
+  height: 35px;
+  width: 35px;
+  border-radius: 50%;
+  border:dashed 5px red;
+  -webkit-animation-name: spin;
+  -webkit-animation-duration: 2s;
+  -webkit-animation-iteration-count: infinite;
+  -webkit-animation-timing-function: linear;
+}
+
+@-webkit-keyframes spin {
+  from   {  -webkit-transform: rotate(0deg); }
+  to   {  -webkit-transform: rotate(360deg); }
+}
+
+/* 별점 */
+
+
+.starRating {
+  display: flex;
+//  justify-content: center;
+//  align-items: center;
+  height: 30px; //5vh;
+  font-size: 20px;
+}
+
+.stars {
+  display: flex;
+  flex-direction: row-reverse;
+}
+
+.stars-input {
+  display: none;
+}
+
+
+
+.stars-view {
+  cursor: pointer;
+}
+
+.stars-view svg {
+  fill: #ededef;
+  width: 1.39306640625em;
+  height: 1.5em;
+}
+
+.stars-view.is-half {
+  transform: translateX(100%);
+  margin-left: -0.69580078125em;
+}
+
+.stars-view.is-half svg {
+  width: 0.69580078125em;
+}
+
+
+.stars-input:checked ~ .stars-view svg {
+  fill: var(--color-gold);
+}
+
+
+.stars-input:checked ~ .stars-view:hover svg,
+.stars-input:checked
+  ~ .stars-view:hover
+  ~ .stars-view
+  svg {
+  fill: var(--color-gold-light);
+}
+
+.stars-view:hover svg,
+.stars-view:hover ~ .stars-view svg {
+  fill: var(--color-gold-light);
+}
+
+/* Search */
+#categoryMenu {
+	width: 100%;
+	height: 50px;
+	border-bottom: 1px solid var(--color-border-gray);
+}
+
+#categoryMenu li{
+	width:33.3%; /* li 3개이므로 */
+	line-height: 48px; /* 텍스트 중앙 정렬(세로) */
+	text-align: center; /* 텍스트 가운데 정렬 */
+	color: var(--color-text-gray);
+	cursor: pointer;
+	font-weight: bold;
+	
+}
+.categorySelected {
+	border-bottom: 2px solid #000;
+	color: black !important; /* !important: css 적용 우선순위 존재. 강제 우선*/
+}
+
+.hidden{
+	display: none;
+}
+
+/* Search */
+
+table, th, td {
+	border: 1px solid black;
+}
+
+/* --- 회원가입 & 로그인 ------------------------------------------------------ */
+
+input[type=password]::-ms-reveal,
+input[type=password]::-ms-clear
+{
+    display: none;
+}
+
+.requiredInput:not(.emailCodeInput) {
+  width: 350px;
+  height: 40px;
+  font-size: 16px;
+  
+}
+.emailCodeInput {
+  width: 202px;
+  height: 34px;
+  font-size: 14px;
+  margin-right: 5px;
+  
+}
+
+
+
+label[value="true"] .validationInput[value="false"] + .requiredInput {
+ background-color: #fcf4f4;
+  
+}
+
+
+.showPwBtn {
+ 
+  font-size:27px;
+  position: relative;
+  left: -120px;
+  top: 9px;
+}
+
+.clearBtn:not(.with-showPwBtn) {
+ 
+  font-size:27px;
+  position: relative;
+  left: -75px;
+  top: 9px;
+}
+.clearBtn {
+ 
+  font-size:27px;
+  position: relative;
+  left: -104px;
+  top: 9px;
+}
+
+
+
+
+.stateCheck:not(.with-showPwBtn) {
+  font-size:27px;
+  position: relative;
+  left: -55px;
+  top: 9px;
+}
+.stateCheck {
+  font-size:27px;
+  position: relative;
+  left: -84px;
+  top: 9px;
+}
+
+.showPwBtnParent[value="false"]{
+	display: none;
+}
+
+.clearBtnParent[value="false"]{
+	display: none;
+}
+
+.stateCheckParent[value="false"]{
+	display: none;
+}
+
+#emailVerificationBtn {
+	display: none;
+}
+
+.warning-text {
+	color: red;
+	margin-top: 5px;
+}
+/* --- 회원가입 & 로그인 ------------------------------------------------------ */
+/* userInfo */
+
+.graph{
+  width:370px; 
+  height: 115px; 
+  border-bottom: 1px solid #ccc;
+/*   border-left: 1px solid #ccc; */
+  margin: 20px auto;
+  position:relative;
+}
+.graph-bar{
+  display: inline-block;
+  position: absolute;
+  width: 35px; 
+  bottom:0; 
+  perspective:200px;
+  background:#ffdd63;
+}
+
+.graph span:not(.topSpan) {
+ 	position: absolute;
+	bottom: -20px;
+	left: 15px;
+	
+}
+.graph .topSpan {
+ 	position: absolute;
+	top: -15px;
+	left: 7.5px;
+	
+	
+}
+
+.starRatingAnalysis{
+  width:370px; 
+  height: 100px; 
+  margin: 20px auto;
+  position:relative;
+}
+.analysisContents{
+  display: inline-block;
+ 
+}
+
+/* userInfo */
+
+/*----------------- Main 페이지 ----------------- */
+/* 박스오피스 */
+.movieList li {
+	width: 18%;
+/* 	margin-left: 10px; */
+/* 	margin-right: 10px; */
+	padding: 0 6px;
+	float: left;
+	margin-bottom: 19px;
+}
+
+.movieList li img{
+	width: 100%;
+	aspect-ratio: 144 / 206;
+	/* https://inpa.tistory.com/entry/CSS-%F0%9F%93%9A-%EC%9D%B4%EB%AF%B8%EC%A7%80-%EB%B9%84%EC%9C%A8-%EA%B3%A0%EC%A0%95%ED%95%98%EB%8A%94-%EB%B0%A9%EB%B2%95-aspect-ratio */
+}
+/* .boxoffice li:nth-child(5){
+	margin-right: none;
+}
+.boxoffice li:nth-child(10){
+	margin-right: none;
+}
+ */
+.movieList .movie-Name {
+	width: 100%;
+	overflow: hidden;  		
+	white-space: nowrap;
+	text-overflow: ellipsis; 
+	/* 텍스트 생략
+	* https://devbirdfeet.tistory.com/140
+	*/
+	
+} 
+
+.boxOffice--rank {
+	/* https://heinafantasy.com/62 */
+	position: absolute; 
+	top: 3%; 
+	left: 4%; 
+	text-align: center;
+	
+	background-color: black; 
+	width:25px; 
+	height:25px; 
+	line-height: 25px; 
+	color: white; 
+	font-weight: bolder; 
+	border-radius: 4px; 
+}
+ 
+ /* 상위 평점 리스트 */
+ .slide {
+
+ 	position: relative;
+ }
+ .slide .slide-container {
+
+	width: 100%; 
+	
+	transition: transform 0.5s;
+	white-space:nowrap;
+ }
+ 
+.slide-inner{
+/* 	position: absolute; */
+/* 	top: 0px; */
+	width: 18%;
+/* 	margin-left: 10px; */
+/* 	margin-right: 10px; */
+	padding: 0 0.71%;
+	display:inline-block;
+/* 	margin-bottom: 10px; */
+	
+ }
+
+ .slide-inner img{
+	max-width: 100%;
+	aspect-ratio: 144 / 206;
+}
+
+ .slide .slideBtn {
+	position: absolute;
+	z-index: 10;
+	top: 45%;
+/* 	transform: translateY(-50%); */
+	width: 35px;
+	
+	background-color: white;
+}
+.slide .slideBtn img {
+		width: 100%;
+	/* 	color: white; */
+}
+.slide .movie-Name {
+	width: 100%;
+	overflow: hidden;  		
+	text-overflow: ellipsis; 
+	/* 텍스트 생략
+	* https://devbirdfeet.tistory.com/140
+	*/
+	
+}
+
+.slide .genre-Alt {
+	width: 100%;
+	overflow: hidden;  		
+	text-overflow: ellipsis; 
+	/* 텍스트 생략
+	* https://devbirdfeet.tistory.com/140
+	*/
+	
+}
+ .slide .slidePrevBtn {
+	left: 0px;
+	border-radius: 100%;
+	cursor: pointer;	
+}
+ .slide .slideNextBtn {
+	right: 0px;
+	border-radius: 100%;
+	cursor: pointer;
+}
+/*----------------- Main 페이지 ----------------- */
+
+/* ----------------- movieInfo 페이지 ----------*/
+.commentsList .slide-inner{
+/* 	position: absolute; */
+/* 	top: 0px; */
+	height: 293px;
+	width: 48%;
+
+/* 	margin-left: 10px; */
+/* 	margin-right: 10px; */
+	padding: 0 1%;
+	display:inline-block;
+/* 	margin-bottom: 10px; */
+	
+ }
+
+.commentsList .slide-inner img{
+	max-width: 100%;
+	aspect-ratio: 144 / 206;
+}
+
+.commentsList .slide-inner .commentContents{
+	height : 196px;
+	white-space: pre-wrap; /* 줄바뀜 */
+	overflow: hidden; /* 요소 크기 넘어가는 경우 표시 허용 여부 */
+	text-overflow :ellipsis; /* 넘어간 텍스트 ...로 대체 */
+	word-wrap : brek-word; 
+	display: -webkit-box;
+	-webkit-line-clamp:9;
+	-webkit-box-orient:vertical;
+    line-height: 22px;
+
+	
+}
+
+
+/* ----------------- movieInfo 페이지 ----------*/
+
+/* ----------------- peopleInfo 페이지 ----------*/
+.peopleSMovie {
+
+	margin: 10px 0;
+
+	
+}
+
+/* ----------------- peopleInfo 페이지 ----------*/
+
+/* ----------------- commentInfo 페이지 ----------*/
+.peopleSMovieInfo .commentContents {
+	overflow: visible;
+	height:auto;
+/* 	background-color: green; */
+/* 	background-color: blue; */
+	
+}
+
+.commentBtnGroup button:not(.likeBtn-alone) {
+	
+	width:40%;
+	text-align: center; /* 텍스트 가운데 정렬 */
+	
+}
+
+.likeBtn-alone {
+	background-color: white; 
+	border-radius: 5px; 
+	margin-top:5px; 
+	margin-bottom:5px; 
+/* 	width:100%; */
+}
+
+/* ----------------- commentInfo 페이지 ----------*/
+
+/* --------------- commentList 페이지 ------------- */
+.commentsList .commentLi{
+
+	padding: 0 1%;
+
+	
+ }
+
+/* --------------- commentList 페이지 ------------- */
+/* ------------------ movieCommentList 페이지 ----------- */
+.commentContents {
+	overflow: visible;
+	height:auto;
+	line-height: 22px;
+    white-space: pre-wrap; /* 줄바뀜 */
+}
+/* ------------------ movieCommentList 페이지 ----------- */
+/* ----------------- Search 페이지 ----------*/
+#resultList ui {
+	width: 100%;
+
+}
+#resultList li {
+	width: 40%;
+	display: inline-block;
+	margin-left: 10px; 
+	margin-right:10px;
+
+}
+
+.additionalBtn {
+	font-size:16px;
+	font-weight: bold;
+	width: 150px;
+	height: 30px;
+	border: 1px solid black;
+	border-radius: 6px;
+	margin-bottom: 20px;
+	margin-top:20px;
+}
+
+.repNm {
+	 background-color: rgb(242,242,242); 
+	 border-radius: 5px; 
+	 padding: 5px;
+}
+.noResultDiv {
+	text-align: center;
+	margin-top: 20px;
+	margin-bottom:40px;
+	
+}
+/* ----------------- Search 페이지 ----------*/
+
+
+/* ------------------ Analysis 페이지 ------------*/
+/* .favoriteGenreTop3 li{ */
+	
+/* } */
+/* ------------------ Analysis 페이지 ------------*/
+
+/* ------------- Manage -------------------- */
+#resultListTable tr {
+	height: 9px;
+}
+#resultListTable td {
+/* 	width: 14.5 %; */
+	border-right: 1px solid rgb(242,242,242);
+	padding-left: 15px;
+    padding-right: 15px;
+}
+/* ------------- Manage -------------------- */

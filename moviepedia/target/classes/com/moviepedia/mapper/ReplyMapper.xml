@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  
+<mapper namespace="com.moviepedia.mapper.ReplyMapper">
+
+	<insert id="insert" useGeneratedKeys="true" keyColumn="replyCd" keyProperty="replyCd">
+	
+		INSERT INTO tbl_reply (replyCd, commentCd, movieCd, userid, reply)
+		VALUES (seq_reply.nextval, #{commentCd}, #{movieCd}, #{userid}, #{reply})
+		
+	</insert>
+	
+	<select id="read" resultType="com.moviepedia.domain.ReplyInfoDTO">
+	
+		SELECT mem.userName, mem.randomString, r.* 
+		FROM tbl_reply r
+		JOIN tbl_member mem
+		ON (r.userid = mem.userid)
+		WHERE r.replyCd = #{replyCd}
+		
+		
+	</select>
+	
+	<!-- <select id="readUser" resultType="com.moviepedia.domain.CommentVO">
+	
+		SELECT * FROM tbl_comment 
+		WHERE userid = #{userid} 
+		AND movieCd = #{movieCd}
+		
+	</select> -->
+	
+	<select id="getUserReplyCdList" resultType="long">
+	
+		SELECT replyCd
+		FROM tbl_reply
+		WHERE userid = #{userid}
+	</select>
+	
+	
+	<delete id="delete">
+	
+		DELETE FROM tbl_reply WHERE replyCd = #{replyCd}
+		
+	</delete>
+	
+	<delete id="deleteByCommentCd">
+	
+		DELETE FROM tbl_reply WHERE commentCd = #{commentCd}
+		
+	</delete>
+	
+	
+	<update id="update">
+	
+		UPDATE tbl_reply SET reply = #{reply}, updateDate = SYSDATE
+		WHERE replyCd = #{replyCd}
+
+	</update>
+	
+	<select id="getList" resultType="com.moviepedia.domain.ReplyInfoDTO">
+	
+		SELECT mem.userName, mem.randomString, r.* 
+		FROM tbl_reply r
+		JOIN tbl_member mem
+		ON (r.userid = mem.userid)
+		<choose>
+			<when test="crudIdx == 0">
+				WHERE r.replyCd = #{replyCd}
+			</when>
+			<when test="crudIdx == 1">
+				WHERE r.commentCd = #{commentCd}
+			</when>
+		</choose>
+		
+		ORDER BY r.replyDate ASC
+		
+	</select>
+	
+	<select id="getCountByCommentCd" resultType="int">
+		
+		SELECT COUNT(replyCd) FROM tbl_reply WHERE commentCd = #{commentCd}
+		
+	</select>
+	
+
+
+</mapper>

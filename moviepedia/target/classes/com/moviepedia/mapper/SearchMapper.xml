@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  
+<mapper namespace="com.moviepedia.mapper.SearchMapper">
+
+<select id="getRelatedQuery" resultType="com.moviepedia.domain.MovieVO">
+
+	SELECT movieCd, MovieNm 
+	FROM tbl_movie 
+	WHERE (REPLACE(LOWER(movieNm),' ','') LIKE REPLACE('%'||#{query}||'%',' ','') 
+			OR REPLACE(LOWER(movieNmEn),' ','') LIKE REPLACE('%'||#{query}||'%',' ','')
+		)
+		AND <![CDATA[ROWNUM <= 10]]>
+
+</select>
+
+<!--
+<select id="getMovieListForActorNm" resultType="com.moviepedia.domain.MovieVO">
+
+	SELECT m.* 
+	FROM (
+		SELECT ROWNUM AS rank, movieCd, movieNm, prdtYear, repGenreNm, repNationNm, directorDetail, actorDetail, posterUrl
+		FROM tbl_movie 
+		WHERE REPLACE(LOWER(actorDetail),' ','') LIKE REPLACE('%'||#{query}||'%',' ','') 
+	) m
+	WHERE m.rank BETWEEN #{currentCnt} + 1 AND #{currentCnt} + 10  
+
+</select>
+-->
+
+<!-- 
+<select id="getMovieListForMovieNmDirectorNm" resultType="com.moviepedia.domain.MovieVO">
+	
+	SELECT m.rank, m.*
+	FROM (
+	    SELECT um.*, ROW_NUMBER() OVER(ORDER BY um.prdtYear DESC) AS rank
+	    FROM (
+	        SELECT movieCd, movieNm, prdtYear, repGenreNm, repNationNm, directorDetail, actorDetail, posterUrl
+	        FROM tbl_movie 
+	        WHERE REPLACE(LOWER(movieNm),' ','') LIKE REPLACE('%'||#{query}||'%',' ','') 
+	        	OR REPLACE(LOWER(movieNmEn),' ','') LIKE REPLACE('%'||#{query}||'%',' ','')
+	        UNION
+	        SELECT movieCd, movieNm, prdtYear, repGenreNm, repNationNm, directorDetail, actorDetail, posterUrl
+	        FROM tbl_movie 
+	        WHERE REPLACE(LOWER(directorDetail),' ','') LIKE REPLACE('%'||#{query}||'%',' ','') 
+	    ) um    
+	) m
+	WHERE m.rank BETWEEN #{currentCnt} + 1 AND #{currentCnt} + #{restCnt}
+
+</select>
+-->
+
+<select id="getMovieList" resultType="com.moviepedia.domain.MovieVO">
+	
+	SELECT ft.movieCd, ft.movieNm, ft.prdtYear, ft.repGenreNm, ft.repNationNm, ft.directorDetail,  ft.posterUrl
+	FROM (
+	    SELECT ROWNUM AS sequence, iv2.*
+	    FROM (
+	        SELECT iv1.*
+	        FROM ( 
+	            SELECT 1 AS ordered, m_mn.updateDate, m_mn.movieCd, m_mn.movieNm, m_mn.prdtYear, m_mn.repGenreNm, m_mn.repNationNm, m_mn.directorDetail,  m_mn.posterUrl
+	            FROM tbl_movie m_mn
+	            WHERE REPLACE(LOWER(m_mn.movieNm),' ','') LIKE REPLACE('%'||#{query}||'%',' ','') 
+	                OR REPLACE(LOWER(m_mn.movieNmEn),' ','') LIKE REPLACE('%'||#{query}||'%',' ','')
+	        --    ORDER BY m_mn.updateDate DESC    
+	            UNION
+	            SELECT 2 AS ordered, m_d.updateDate, m_d.movieCd, m_d.movieNm, m_d.prdtYear, m_d.repGenreNm, m_d.repNationNm, m_d.directorDetail, m_d.posterUrl
+	            FROM tbl_movie m_d
+	            WHERE REPLACE(LOWER(m_d.directorDetail),' ','') LIKE REPLACE('%'||#{query}||'%',' ','') 
+	        --    ORDER BY m_d.updateDate DESC
+	            UNION
+	            SELECT 3 AS ordered, m_a.updateDate, m_a.movieCd, m_a.movieNm, m_a.prdtYear, m_a.repGenreNm, m_a.repNationNm, m_a.directorDetail,  m_a.posterUrl
+	            FROM tbl_movie m_a
+	            WHERE REGEXP_REPLACE(m_a.actorDetail||',' ,'\|.*?\,', ',') LIKE REPLACE('%'||#{query}||'%',' ','') 
+	             /* REPACE 함수와 REGEXP_REPACE 함수 다르다. / 와일드카드 % 사용 불가 */
+	             /* 정규표현식: 특수문자쓰고싶으면 앞에 \ 붙여야함, \ : OR, .* : 모든문자, ?:0또는 1회 포함
+	            -> 배우명|영문명|역할, 배우명||역할, 배우명|영문명|, 배우명|, 모두 커버 */
+	        --    ORDER BY m_a.updateDate DESC
+	        ) iv1
+	        ORDER BY iv1.ordered ASC, iv1.updateDate DESC
+	    ) iv2
+	) ft
+	WHERE ft.sequence BETWEEN #{currentSqnc} + 1 AND #{currentSqnc} + #{additionalCnt} 
+</select>
+
+
+<select id="getPeopleList" resultType="com.moviepedia.domain.PeopleVO">
+	
+	SELECT ft.*
+	FROM (
+		SELECT ROWNUM AS sequence, p.peopleCd, p.peopleNm, p.repRoleNm, p.repMovieList, p.repMovieListDate, p.updateDate
+		FROM tbl_people p
+		WHERE REPLACE(LOWER(peopleNm),' ','') LIKE REPLACE('%'||#{query}||'%',' ','') 
+	    	OR REPLACE(LOWER(peopleNmEn),' ','') LIKE REPLACE('%'||#{query}||'%',' ','')
+    ) ft
+    WHERE ft.sequence BETWEEN #{currentSqnc} + 1 AND #{currentSqnc} + #{additionalCnt} 
+
+</select>
+
+<!-- 
+<select id="getPeopleMasterpiece" resultType="com.moviepedia.domain.MovieVO">
+
+	SELECT movieNm 
+	FROM
+		(SELECT  movieCd, movieNm, prdtYear, cnt, rank_cnt, avg, rank_avg, SUM(rank_cnt + rank_avg)/2 total_avg
+		FROM (
+		    SELECT m.movieCd, m.movieNm, m.prdtYear, COUNT(s.starRating) cnt , RANK() OVER(ORDER BY COUNT(s.starRating) DESC) rank_cnt, AVG(s.starrating) AVG, 
+		    RANK() OVER(ORDER BY AVG(s.starRating) DESC NULLS LAST) rank_avg
+		    FROM tbl_starRating s
+		    RIGHT JOIN tbl_movie m
+		    ON s.movieCd = m.movieCd
+		    <choose>
+		    	<when test="repRoleNm == '감독'">
+				    WHERE m.directorDetail LIKE '%'||#{peopleNm}||'%'
+		    	</when>
+		    	<when test="repRoleNm == '배우'">
+				    WHERE m.actorDetail LIKE '%'||#{peopleNm}||'%'
+		    	</when>
+		    </choose>
+		    GROUP BY m.movieCd, m.movieNm,  m.prdtYear
+			)
+		GROUP BY  movieCd, movieNm, prdtYear, cnt, rank_cnt, avg, rank_avg
+		ORDER BY total_avg ASC, prdtYear DESC
+		)
+	WHERE <![CDATA[ROWNUM <= 2]]>
+
+</select>
+ -->
+
+
+<select id="getUserList" resultType="com.moviepedia.domain.UserDTO">
+	
+<!-- 	SELECT ft.*
+	FROM (
+	    SELECT ROWNUM AS sequence, iv.*
+	    FROM (
+	        SELECT  m.userName, m.randomString, m.userIntroduction
+	            , COUNT(s.starRating) AS cntStarRating
+	            , COUNT(c.commentCd) AS cntComment
+	        FROM tbl_member m
+	        LEFT OUTER JOIN tbl_starRating s
+	        ON (m.userid = s.userid)
+	        LEFT OUTER JOIN tbl_comment c
+	        ON (m.userid = c.userid)
+	        WHERE REPLACE(LOWER(m.userName),' ','') LIKE REPLACE('%'||#{query}||'%',' ','') 
+	        GROUP BY m.userName, m.randomString, m.userIntroduction, m.regDate
+	        ORDER BY cntStarRating DESC, m.regDate DESC
+	    ) iv
+	) ft -->
+	
+	SELECT ft.*
+	FROM (
+	    SELECT ROWNUM AS sequence, iv2.*
+	    FROM (
+	        SELECT iv1.*
+	            , COUNT(c.commentCd) AS cntComment
+	        FROM (
+	            SELECT  m.userid, m.userName, m.randomString, m.userIntroduction
+	                
+	                , COUNT(s.starRating) AS cntStarRating
+	                
+	            FROM tbl_member m
+	            LEFT OUTER JOIN tbl_starRating s
+	            ON (m.userid = s.userid)
+	          
+	            WHERE REPLACE(LOWER(m.userName),' ','') LIKE REPLACE('%'||#{query}||'%',' ','') 
+	            GROUP BY m.userid, m.userName, m.randomString, m.userIntroduction
+	            ORDER BY cntStarRating DESC, m.regDate DESC
+	        ) iv1
+	        LEFT OUTER JOIN tbl_comment c
+	        ON (iv1.userid = c.userid)
+	        GROUP BY iv1.userid, iv1.userName, iv1.randomString, iv1.userIntroduction, iv1.cntStarRating
+	    ) iv2
+	) ft
+	WHERE ft.sequence BETWEEN #{currentSqnc} + 1 AND #{currentSqnc} + #{additionalCnt} 
+	
+</select>	
+	
+
+</mapper>

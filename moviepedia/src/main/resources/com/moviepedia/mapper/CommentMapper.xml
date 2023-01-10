@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  
+<mapper namespace="com.moviepedia.mapper.CommentMapper">
+
+	<resultMap type="com.moviepedia.domain.CommentInfoDTO" id="commentInfoDTO">
+	
+		<result property="userName" column="username"/>
+		<result property="randomString" column="randomstring"/>
+		
+		
+		<result property="movieNm" column="movieNm"/>
+		<result property="posterUrl" column="posterUrl"/>
+		<result property="prdtYear" column="prdtYear"/>
+		<result property="openDt" column="openDt"/>
+		<result property="directorDetail" column="directorDetail"/>
+		<result property="repNationNm" column="repNationNm"/>
+		
+		<result property="userStarRating" column="userStarRating"/>
+		
+		<result property="likeCd" column="likeCd"/>
+		
+		<result property="cntUserStarRating" column="cntUserStarRating"/>
+		<result property="avgUserStarRating" column="avgUserStarRating"/>
+
+		<association property="commentVO" javaType="com.moviepedia.domain.CommentVO">
+			<id property="commentCd" column="commentcd"/>
+			
+			<result property="movieCd" column="moviecd"/>
+			<result property="userid" column="userid"/>
+			<result property="contents" column="contents"/>
+			<result property="commentDate" column="commentdate"/>
+			<result property="updateDate" column="updatedate"/>
+			<result property="replyCnt" column="replycnt"/>
+			<result property="likeCnt" column="likecnt"/>
+		</association>
+	</resultMap>
+	
+	
+	<insert id="insert">
+	
+		INSERT INTO tbl_comment (commentCd, movieCd, userid, contents)
+		VALUES (seq_comment.nextval, #{movieCd}, #{userid}, #{contents})
+		
+	</insert>
+	
+	<select id="read" resultMap="commentInfoDTO">
+	
+<!-- 		SELECT c.*, m.userName, m.randomString, s.starRating -->
+<!-- 		FROM tbl_comment c -->
+<!-- 		JOIN tbl_member m -->
+<!-- 		ON c.userid = m.userid -->
+<!-- 		LEFT OUTER JOIN tbl_starRating s -->
+<!-- 		ON c.userid = s.userid AND c.movieCd = s.movieCd -->
+<!-- 		WHERE commentCd = #{commentCd} -->
+		
+		SELECT c.userid, c.commentCd, c.movieCd, c.contents, c.commentDate, c.replyCnt, c.likeCnt
+		    , mem.userName, mem.randomString
+		    , m.movieNm, m.posterUrl, m.prdtYear, SUBSTR(m.directorDetail, 0, INSTR(m.directorDetail,'|')-1) AS directorDetail
+		    , s.starRating AS userStarRating
+		    /* TIP) SELECT절 서브쿼리(스칼라 서브쿼리)는 하나의 컬럼만을 출력할 수 있음 */
+		    , CASE 
+		    WHEN s.starRating IS NOT NULL THEN (SELECT COUNT(sss.starRating) FROM tbl_starRating sss WHERE sss.userid = c.userid )
+		    END AS cntUserStarRating
+		    , CASE 
+		    WHEN s.starRating IS NOT NULL THEN (SELECT ROUND(AVG(sss.starRating),1) FROM tbl_starRating sss WHERE sss.userid = c.userid )
+		    END AS avgUserStarRating
+		FROM tbl_comment c
+		JOIN tbl_member mem
+		ON (c.userid = mem.userid)
+		JOIN tbl_movie m
+		ON (c.movieCd = m.movieCd)
+		LEFT OUTER JOIN tbl_StarRating s
+		ON (c.userid = s.userid AND c.movieCd = s.movieCd)
+		WHERE c.commentCd = #{commentCd}
+		
+	</select>
+	
+	<select id="readUser" resultMap="commentInfoDTO">
+	
+		SELECT c.*, m.userName, m.randomString, s.starRating AS userStarRating
+		FROM tbl_comment c
+		JOIN tbl_member m
+		ON c.userid = m.userid
+		LEFT OUTER JOIN tbl_starRating s
+		ON c.userid = s.userid AND c.movieCd = s.movieCd
+		WHERE c.userid = #{userid} 
+		AND c.movieCd = #{movieCd}
+		
+	</select>
+	
+	<select id="getUserCommentCdList" resultType="long">
+	
+		SELECT commentCd
+		FROM tbl_comment
+		WHERE userid = #{userid}
+	</select>
+	
+	<delete id="delete">
+	
+		DELETE FROM tbl_comment WHERE commentCd = #{commentCd}
+		
+	</delete>
+<!-- useGeneratedKeys="true" keyColumn="contents" keyProperty="contents" -->
+	<update id="update" >
+		
+		<!-- keyProperty="commentDate,contents" resultType="com.moviepedia.domain.CommentVO"	 -->
+		<selectKey keyProperty="contents" resultType="java.lang.String"  order="AFTER">
+			SELECT contents FROM tbl_comment WHERE commentCd = #{commentCd}
+		</selectKey>
+		
+		UPDATE tbl_comment SET contents = #{contents}, updateDate = SYSDATE
+		WHERE commentCd = #{commentCd}
+
+	</update>
+	
+	<!-- 사용 x ) getAdditionalList로 통일 -->
+		<!-- tip) 동적쿼리 내부에 <CDATA 사용 불가 -> CDATA를 필요한 부분에만 사용할 것 -->
+		<!-- tip) 조건문에서 사용하는 변수명은 #{} 사용X -->
+<!-- 	<select id="getList" resultType="com.moviepedia.domain.CommentVO"> -->
+		
+<!-- 		SELECT c.*  -->
+<!-- 		FROM (SELECT ROWNUM AS RANK, sc.*  -->
+<!--         		FROM (SELECT tbl_comment.*  -->
+<!--         				FROM tbl_comment  -->
+<!--         				WHERE movieCd = #{movieCd}  -->
+<!--         				<choose> -->
+<!-- 							<when test="orderBy == 0"> -->
+<!-- 								ORDER BY likeCnt DESC, commentdate DESC -->
+<!-- 							</when> -->
+<!-- 							<when test="orderBy == 1"> -->
+<!-- 								ORDER BY commentdate DESC, likeCnt DESC -->
+<!-- 							</when> -->
+<!-- 						</choose>) sc) c -->
+<!-- 		WHERE c.rank BETWEEN 1 AND #{totalCnt} -->
+<!-- 		ORDER BY c.rank -->
+
+<!-- 	</select> -->
+	
+	<select id="getAdditionalList" resultMap="commentInfoDTO">
+	<!-- TO_CHAR(s.starRating, 'fm0.0') AS starRating -->
+		SELECT c.commentcd, c.moviecd, c.userid, c.contents, c.commentdate, c.updatedate, c.replycnt, c.likecnt
+			, m.userName, m.randomString
+			, s.starRating AS userStarRating
+			, (SELECT ssl.likeCd FROM tbl_like ssl WHERE ssl.userid = #{loginUserid} AND ssl.commentCd = c.commentCd)
+				 AS likeCd
+<!-- 			<if test="loginUserid !=null and !loginUserid.equals('')"> -->
+<!-- 				, (SELECT ssl.likeCd FROM tbl_like ssl WHERE ssl.userid = #{loginUserid} AND ssl.commentCd = c.commentCd) -->
+<!-- 				 AS likeCd -->
+<!-- 			</if> -->
+		FROM (SELECT ROWNUM AS RANK, sc.* 
+        		FROM (SELECT tbl_comment.* 
+        				FROM tbl_comment         				
+        				WHERE movieCd = #{movieCd} 
+        				<choose>
+							<when test="orderBy == 0">
+								ORDER BY likeCnt DESC, commentdate DESC
+							</when>
+							<when test="orderBy == 1">
+								ORDER BY commentdate DESC, likeCnt DESC
+							</when>
+						</choose>) sc) c 
+		JOIN tbl_member m
+		ON (c.userid = m.userid)
+		LEFT OUTER JOIN tbl_starRating s
+		ON (c.userid = s.userid AND c.movieCd = s.movieCd)
+		WHERE c.rank BETWEEN #{currentCnt} + 1 AND #{currentCnt} + #{additionalCnt}
+		ORDER BY c.rank
+
+	</select>
+	
+	<update id="updateReplyCnt">
+	
+		UPDATE tbl_comment SET replyCnt = replyCnt + #{amount} WHERE commentCd = #{commentCd}
+	
+	</update>
+	
+	
+	
+	<update id="updateLikeCnt" >
+	
+		UPDATE tbl_comment SET likeCnt = likeCnt + #{amount} WHERE commentCd = #{commentCd}
+
+	</update>
+	
+	<select id="getReplyCnt" resultType="int">
+		
+		SELECT replyCnt 
+		FROM tbl_comment
+		WHERE commentCd = #{commentCd}
+	
+	</select>
+	
+	<select id="getLikeCnt" resultType="int">
+		
+		SELECT likeCnt 
+		FROM tbl_comment
+		WHERE commentCd = #{commentCd}
+	
+	</select>
+	
+	<select id="testGetList" resultMap="commentInfoDTO">
+	
+
+<!-- 	BEGIN -->
+<!-- 		<bind name="userid" value="#{userid}"/> -->
+		
+<!-- 		SELECT c.COMMENTCD, c.MOVIECD, c.USERID, c.CONTENTS, c.COMMENTDATE, c.UPDATEDATE, c.REPLYCNT, c.LIKECNT, m.userName, m.randomString,s.starRating -->
+<!-- 		FROM tbl_comment c -->
+<!-- 		JOIN tbl_member m -->
+<!-- 		ON c.userid = m.userid -->
+<!-- 		LEFT OUTER JOIN tbl_starRating s -->
+<!-- 		ON c.userid = s.userid AND c.movieCd = s.movieCd -->
+<!-- 		WHERE c.userid = 'mem8' -->
+<!-- 		AND c.movieCd = '20000006'; -->
+	
+		
+		
+<!-- 		SELECT ROUND(AVG(starRating), 1) starRatingAvg, COUNT(starRating) starRatingCnt -->
+<!-- 		FROM tbl_starrating  -->
+<!-- 		WHERE userid= ${userid} -->
+
+<!-- 		END; -->
+	</select>
+	
+
+</mapper>

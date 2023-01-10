@@ -1,0 +1,661 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  
+<mapper namespace="com.moviepedia.mapper.UserMapper">
+
+
+
+	
+
+	<select id="getUserInfoByRandomString" resultType="com.moviepedia.domain.UserDTO">
+		SELECT DISTINCT iv.*, COUNT(c.commentCd) OVER(PARTITION BY iv.userid) AS cntComment
+		FROM (
+		    SELECT DISTINCT mem.userid, mem.userName, mem.userIntroduction, mem.randomString
+		        , COUNT(s.starRating) OVER(PARTITION BY mem.userid) AS cntStarRating    
+		    FROM tbl_member mem 
+		    LEFT OUTER JOIN tbl_starRating s /* LEFT OUTER JOIN : 별점, 코멘트 없더라도 출력되도록 하기 위함 */ 
+		    ON (mem.userid = s.userid)
+		    WHERE mem.randomstring = #{randomString}
+		) iv
+		LEFT OUTER JOIN tbl_comment c
+		ON (iv.userid = c.userid)
+	</select>
+	
+
+	<resultMap type="com.moviepedia.domain.StarRatingAnalysisDTO" id="StarRatingAnalysisMap">
+		
+		<id property="userid" column="userid"/>
+		
+		<result property="starRatingCnt" column="starratingcnt"/>
+		<result property="starRatingAvg" column="starratingavg"/>
+		
+		<collection property="cntByStarDTOList" resultMap="CntByStarDTOMap"></collection>
+	
+	</resultMap>
+	
+	<resultMap type="com.moviepedia.domain.CntByStarDTO" id="CntByStarDTOMap">
+		<result property="star" column="star"/>
+		<result property="starCnt" column="starcnt"/>
+	</resultMap>
+	
+	<select id="getStarRatingAnalysis" resultMap="StarRatingAnalysisMap">
+	
+		SELECT s.userid, ROUND(AVG(s.starRating), 1) starratingavg, count(s.starrating) starratingcnt, js.star, js.starCnt
+		FROM tbl_starrating s LEFT OUTER JOIN (
+			SELECT userid,
+				CASE starrating 
+				WHEN 0.5 THEN 'cnt0_5' WHEN 1 THEN 'cnt1_0' 
+				WHEN 1.5 THEN 'cnt1_5' WHEN 2 THEN 'cnt2_0' 
+				WHEN 2.5 THEN 'cnt2_5' WHEN 3 THEN 'cnt3_0' 
+				WHEN 3.5 THEN 'cnt3_5' WHEN 4 THEN 'cnt4_0'
+				WHEN 4.5 THEN 'cnt4_5' WHEN 5 THEN 'cnt5_0'
+				END AS star,
+				COUNT(starrating) starCnt
+			FROM tbl_starrating
+			GROUP BY userid, starrating
+		) js
+		ON s.userid=js.userid
+		WHERE s.userid= #{userid}
+		GROUP BY s.userid, js.star, js.starCnt
+		ORDER BY js.star ASC
+
+	</select>
+	
+	
+	<select id="getFavoritePeopleScore" resultType="com.moviepedia.domain.FavoritePeopleDTO">
+	
+		SELECT ft.peopleCd, ft.peopleNm, ft.repMovieList, ft.repMovieListDate, ft.updateDate, ft.cntStarRating,
+		<choose>
+		 	<when test="roleNm.equals('배우')"> <!-- O -->
+<!-- 		 	<when test="roleNm == '배우'"> --> <!-- X -->
+<!-- 		 	<when test='roleNm == "배우"'> --> <!-- O -->
+				ft.score1
+				, ft.scaleCntStarRating, ft.scaleAvgStarRating, ft.scaleRatioRatingByCntFilmos
+		 	</when>
+		 	<when test="roleNm.equals('감독')">    	
+		 		ft.scaleCntStarRating, ft.scaleAvgStarRating, ft.scaleRatioRatingByCntFilmos, ft.scaleCntPeopleFilmos,
+				ft.finalScore		
+		 	</when>
+		</choose>
+		FROM (
+		    SELECT DISTINCT iv2.peopleCd, iv2.peopleNm, iv2.repMovieList, iv2.repMovieListDate, iv2.updateDate, iv2.cntStarRating, 
+		<choose>
+		 	<when test="roleNm.equals('배우')">
+				(iv2.scaleCntStarRating * 0.55 + iv2.scaleAvgStarRating * 0.30 + iv2.scaleRatioRatingByCntFilmos * 0.15) AS score1
+				, iv2.scaleCntStarRating, iv2.scaleAvgStarRating, iv2.scaleRatioRatingByCntFilmos
+		 	</when>
+		 	<when test="roleNm.equals('감독')">    	
+		 		iv2.scaleCntStarRating, iv2.scaleAvgStarRating, iv2.scaleRatioRatingByCntFilmos, iv2.scaleCntPeopleFilmos,
+				ROUND((iv2.scaleCntStarRating * 0.55 + iv2.scaleAvgStarRating * 0.25 + iv2.scaleRatioRatingByCntFilmos * 0.15 + iv2.scaleCntPeopleFilmos *  0.05) * 100, 0) AS finalScore 
+		 	</when>
+		</choose>
+		    FROM (
+		        SELECT iv1.peopleCd, iv1.peopleNm, iv1.repMovieList, iv1.repMovieListDate, iv1.updateDate
+		        	, iv1.avgStarRating,
+			        CASE <!-- 특정 컬럼의 데이터 개수 1개이거나 모든 데이터 값이 같은 경우 scale 결과값 1 통일 
+			        		-> 최종 순위는 정규화 결과값의 가중평균한 결과로 정렬되므로 scale값이 얼마든 최종 순위엔 영향 없음 -->
+			        WHEN MAX(iv1.avgStarRating) OVER() - MIN(iv1.avgStarRating) OVER() = 0 THEN 1
+			        ELSE (iv1.avgStarRating - MIN(iv1.avgStarRating) OVER()) / (MAX(iv1.avgStarRating) OVER() - MIN(iv1.avgStarRating) OVER()) 
+			        END AS scaleAvgStarRating,
+			        
+			        iv1.cntStarRating,
+			        CASE
+			        WHEN MAX(iv1.cntStarRating) OVER() - MIN(iv1.cntStarRating) over() = 0 THEN 1
+			        ELSE (iv1.cntStarRating - MIN(iv1.cntStarRating) OVER()) / (MAX(iv1.cntStarRating) OVER() - MIN(iv1.cntStarRating) over())
+			        END AS scaleCntStarRating,
+			        
+			        iv1.cntPeopleFilmos,
+			        CASE
+			        WHEN MAX(iv1.cntPeopleFilmos) OVER() - MIN(iv1.cntPeopleFilmos) over() = 0 THEN 1
+			        ELSE (iv1.cntPeopleFilmos - MIN(iv1.cntPeopleFilmos) OVER()) / (MAX(iv1.cntPeopleFilmos) OVER() - MIN(iv1.cntPeopleFilmos) over())
+			        END AS scaleCntPeopleFilmos,
+		            /* 배우의 출연작품 수는 Service단에서 연산한 score2에서 적용 */   
+		            
+			        iv1.ratioRatingByCntFilmos,
+			        CASE
+			        WHEN MAX(iv1.ratioRatingByCntFilmos) OVER() - MIN(iv1.ratioRatingByCntFilmos) over() = 0 THEN 1
+			        ELSE (iv1.ratioRatingByCntFilmos - MIN(iv1.ratioRatingByCntFilmos) OVER()) / (MAX(iv1.ratioRatingByCntFilmos) OVER() - MIN(iv1.ratioRatingByCntFilmos) over())
+			        END AS scaleRatioRatingByCntFilmos
+			        
+		           
+		        FROM (
+		            SELECT p.peopleCd, p.peopleNm, p.repMovieList, p.repMovieListDate, p.updateDate, s.starRating, 
+			            AVG(s.starRating) OVER(partition by p.peopleCd) AS avgStarRating,
+			            COUNT(p.peopleNm) OVER(partition by p.peopleCd) AS cntStarRating,
+	            <choose>
+	            	<when test="roleNm.equals('배우')">
+			            /*v.11g 이상*/ REGEXP_COUNT(p.actorfilmos, ',')+1 AS cntPeopleFilmos,
+			            COUNT(p.peopleNm) OVER(PARTITION BY p.peopleCd) / (REGEXP_COUNT(p.actorfilmos, ',')+1) AS ratioRatingByCntFilmos           			      
+	            	</when>
+	            	<when test="roleNm.equals('감독')">     	
+			            /*v.11g 이상*/ REGEXP_COUNT(p.directorfilmos, ',')+1 AS cntPeopleFilmos,
+			            COUNT(p.peopleNm) OVER(PARTITION BY p.peopleCd) / (REGEXP_COUNT(p.directorfilmos, ',')+1) AS ratioRatingByCntFilmos         	    
+	            	</when>
+	            </choose>
+		            FROM tbl_starRating s 
+		            JOIN tbl_people p
+            <choose>
+            	<when test="roleNm.equals('배우')">
+		            ON INSTR(p.actorFilmos, s.movieCd) > 0		       			      
+		         			      
+            	</when>
+            	<when test="roleNm.equals('감독')">    	
+		          <!--   ON REGEXP_INSTR(p.directorFilmos, s.movieCd) > 0	  -->   
+		            ON INSTR(p.directorFilmos, s.movieCd) > 0
+            	</when>
+            </choose>
+		            WHERE s.userid=#{userid} AND p.repRoleNm = #{roleNm}
+		        ) iv1
+		    ) iv2
+	<choose>
+		<when test="roleNm.equals('배우')">    			      
+		  <!--   ORDER BY score1 DESC -->
+		  ORDER BY iv2.scaleCntStarRating DESC
+		</when>
+		<when test="roleNm.equals('감독')">    	
+		    ORDER BY finalScore DESC
+		</when>
+	</choose>
+		) ft
+<choose>
+	<when test="roleNm.equals('배우')">
+		WHERE ROWNUM BETWEEN 1 AND 20 <!-- ROWNUM은 ORDER BY 이전에 매겨지므로 서브쿼리에서 정렬 후 ROWNUM 지정해 원하는 구간만 가져옴 -->   
+			<!-- 최종 출력할 fianlScore 결과 상위 10명의 2배수인 20명을 score1 상위 순서로 출력 -->    			      
+	</when>
+	<when test="roleNm.equals('감독')">   
+		WHERE  ft.finalScore &gt; 0 <!-- score 0이면 선호한다 할 수 없으므로.. -->	
+			AND ROWNUM BETWEEN 1 AND 10
+	</when>
+</choose>
+	</select>
+	
+	
+	<select id="getFavoriteActorScore" resultType="com.moviepedia.domain.FavoritePeopleDTO">
+	
+		SELECT ft.peopleCd, ft.peopleNm, ft.repMovieList, ft.repMovieListDate, ft.updateDate, ft.cntStarRating, ft.finalScore
+		FROM (
+		    SELECT iv3.peopleCd, iv3.peopleNm, iv3.repMovieList, iv3.repMovieListDate, iv3.updateDate, iv3.cntStarRating
+		        ,ROUND(iv3.scaleCntStarRating,2) AS cntStar, ROUND(iv3.scaleAvgActorRoleImportance,2) AS avgRole, ROUND(iv3.scaleAvgStarRating, 2) As avgStar, ROUND(iv3.scaleCntActorRoleImportance, 2) AS cntRole , ROUND(iv3.scaleRatioRatingByCntFilmos,2) AS ratio
+		        , ROUND((iv3.scaleCntStarRating * 0.35 + iv3.scaleAvgActorRoleImportance * 0.35 + iv3.scaleAvgStarRating * 0.20 +  iv3.scaleRatioRatingByCntFilmos * 0.10)*100,0) AS finalScore
+		    FROM (
+		        SELECT iv2.peopleCd, iv2.peopleNm, iv2.repMovieList, iv2.repMovieListDate, iv2.updateDate
+		            , iv2.avgStarRating,
+		            CASE 
+		            WHEN MAX(iv2.avgStarRating) OVER() - MIN(iv2.avgStarRating) OVER() = 0 THEN 1
+		            ELSE (iv2.avgStarRating - MIN(iv2.avgStarRating) OVER()) / (MAX(iv2.avgStarRating) OVER() - MIN(iv2.avgStarRating) OVER()) 
+		            END AS scaleAvgStarRating,
+		            
+		            iv2.cntStarRating,
+		            CASE
+		            WHEN MAX(iv2.cntStarRating) OVER() - MIN(iv2.cntStarRating) over() = 0 THEN 1
+		            ELSE (iv2.cntStarRating - MIN(iv2.cntStarRating) OVER()) / (MAX(iv2.cntStarRating) OVER() - MIN(iv2.cntStarRating) over())
+		            END AS scaleCntStarRating,
+		            
+		            iv2.avgActorRoleImportance,
+		            CASE
+		            WHEN MAX(iv2.avgActorRoleImportance) OVER() - MIN(iv2.avgActorRoleImportance) over() = 0 THEN 1
+		            ELSE (MAX(iv2.avgActorRoleImportance) OVER() - iv2.avgActorRoleImportance) / (MAX(iv2.avgActorRoleImportance) OVER() - MIN(iv2.avgActorRoleImportance) over())
+		            END AS scaleAvgActorRoleImportance,
+		            
+		            iv2.cntActorRoleImportance,
+		            CASE
+		            WHEN MAX(iv2.cntActorRoleImportance) OVER() - MIN(iv2.cntActorRoleImportance) over() = 0 THEN 1
+		            ELSE (iv2.cntActorRoleImportance - MIN(iv2.cntActorRoleImportance) OVER()) / (MAX(iv2.cntActorRoleImportance) OVER() - MIN(iv2.cntActorRoleImportance) over())
+		            END AS scaleCntActorRoleImportance,
+		       
+		            iv2.ratioRatingByCntRole,
+		            CASE
+		            WHEN MAX(iv2.ratioRatingByCntRole) OVER() - MIN(iv2.ratioRatingByCntRole) over() = 0 THEN 1
+		            ELSE (iv2.ratioRatingByCntRole - MIN(iv2.ratioRatingByCntRole) OVER()) / (MAX(iv2.ratioRatingByCntRole) OVER() - MIN(iv2.ratioRatingByCntRole) over())
+		            END AS scaleRatioRatingByCntFilmos  
+		        FROM (
+		            SELECT p.peopleCd, p.peopleNm, p.repMovieList, p.repMovieListDate, p.updateDate
+		                 ,AVG(iv1.starRating) AS avgStarRating
+		                ,COUNT(iv1.starRating) AS cntStarRating
+		                , p.cntActorRoleImportance /* REGEXP_COUNT(p.actorfilmos, ',')+1 AS cntPeopleFilmos 대신 사용 */
+		                , p.avgActorRoleImportance
+		                ,COUNT(iv1.starRating) / cntActorRoleImportance AS ratioRatingByCntRole 
+		            FROM (
+		                SELECT * 
+		                FROM tbl_starRating s 
+		                WHERE s.userid =  #{userid}
+		            ) iv1
+		            JOIN tbl_people p
+		            ON INSTR(p.actorFilmos, iv1.movieCd) > 0	
+		            WHERE p.repRoleNm = '배우' AND p.cntActorRoleImportance IS NOT NULL 
+		            GROUP BY p.peopleCd, p.peopleNm, p.repMovieList, p.repMovieListDate, p.updateDate, p.cntActorRoleImportance, p.avgActorRoleImportance, p.actorfilmos
+		            ORDER BY p.avgActorRoleImportance ASC, cntStarRating DESC, p.cntActorRoleImportance DESC , avgStarRating DESC
+		        ) iv2
+		        WHERE ROWNUM BETWEEN 1 AND 700 /*총 2464명  1500-> avgRole 9.333, 1000 -> 5, 700 -> 3, 500 -> 2.3 */     
+		    ) iv3    
+		    ORDER BY finalScore DESC
+		) ft
+		WHERE ROWNUM BETWEEN 1 AND 10   
+
+
+	</select>
+	
+	
+	
+	
+	
+	<!-- 사용x -->
+	<select id="getActorFilmoList" resultType="com.moviepedia.domain.FavoritePeopleDTO">
+		SELECT ft.peopleNm, m.movieCd, m.actorDetail  /*ft.peopleCd , ft.actorFilmo, m.movieCd, */ 
+		FROM (
+		    SELECT iv.peopleCd, iv.peopleNm, REGEXP_SUBSTR(iv.actorFilmos, '[^,]+', 1, level) actorFilmo
+		    FROM (
+		        SELECT p.peopleCd, p.peopleNm, p.actorFilmos FROM tbl_people p WHERE p.peoplecd= #{peopleCd}
+		    ) iv
+		    CONNECT BY REGEXP_SUBSTR(iv.actorFilmos, '[^,]+', 1, LEVEL) IS NOT NULL
+		    /* CONNECT BY는 WHERE 이전에 실행되므로 FROM절이 단일행이 아니면 전체 FULL SCAN하여 연삭속도 극히느려짐 */
+		) ft
+		INNER JOIN tbl_movie m
+		ON (ft.actorFilmo = m.movieCd)
+	</select>
+	
+	<!-- 사용x -->
+	<select id="getActorRoleImportanceValue" resultType="Integer">
+	
+		SELECT ft.rank AS actorRoleImportanceValue, ft.actorRole
+		FROM (
+		    SELECT ROWNUM AS rank, REGEXP_SUBSTR(iv.actorDetail, '[^,]+', 1, LEVEL) AS actorRole
+		    FROM (
+		        SELECT m.actorDetail
+		        FROM tbl_movie m
+		        WHERE movieCd =#{movieCd}
+		    ) iv    
+		    CONNECT BY	REGEXP_SUBSTR(iv.actorDetail, '[^,]+', 1, LEVEL) IS NOT NULL
+		    ORDER BY rank ASC
+		) ft
+		WHERE INSTR(ft.actorRole, #{peopleNm}) > 0 AND ROWNUM = 1
+	
+	</select>
+	
+
+	
+	<select id="getActorRoleImportance" resultType="map">
+	
+		SELECT DISTINCT iv5.cntActorRoleImportance AS "cntActorRoleImportance", AVG(iv5.actorRoleImportance) OVER() AS "avgActorRoleImportance"
+		FROM (
+		    SELECT iv4.actorRoleImportance, COUNT(iv4.actorRoleImportance) OVER() AS cntActorRoleImportance
+		    FROM (
+		        SELECT iv3.peopleNm, iv3.updateDate, iv3.movieCd, iv3.movieNm
+		            ,iv3.commaCnt - REGEXP_COUNT(iv3.actorDetail, ',', iv3.peopleIdx) +1 AS actorRoleImportance
+		        FROM (
+		            SELECT iv2.peopleNm, iv2.updateDate
+		                , m.movieCd, m.movieNm, m.actorDetail
+		                , INSTR(m.actorDetail, iv2.peopleNm) AS peopleIdx
+		                , REGEXP_COUNT(m.actorDetail, ',') AS commaCnt  
+		            FROM (
+		                SELECT iv1.peopleCd, iv1.peopleNm, iv1.updateDate, REGEXP_SUBSTR(iv1.actorFilmos, '[^,]+', 1, level) actorFilmo
+		                FROM (
+		                    SELECT p.peopleCd, p.peopleNm, p.actorFilmos, p.updateDate 
+		                    FROM tbl_people p 
+		                    WHERE p.peopleCd= #{peopleCd}
+		                ) iv1
+		                CONNECT BY REGEXP_SUBSTR(iv1.actorFilmos, '[^,]+', 1, level) IS NOT NULL
+		                /* CONNECT BY는 WHERE 이전에 실행되므로 FROM절이 단일행이 아니면 전체 FULL SCAN하여 연삭속도 극히느려짐 */
+		            ) iv2
+		            INNER JOIN tbl_movie m
+		            ON (iv2.actorFilmo = m.movieCd)
+		            GROUP BY iv2.peopleNm, iv2.updateDate, m.movieCd, m.movieNm, m.actorDetail
+		        ) iv3
+		        WHERE iv3.peopleIdx != 0 /* INSTR()은 찾고자 하는 문자열 없으면 0 반환(우정 출연 등은 누락되는 경우 있는 것 같다) */
+		        ORDER BY actorRoleImportance ASC /* 비중 기준 정렬 */
+		    ) iv4
+		) iv5
+		WHERE ROWNUM BETWEEN 1 AND 10 /* AVG 평균값은 actorOrder 정렬 상위 10개로만 계산 */
+
+	</select>
+	
+	
+
+	
+	
+	<select id="getMovieCdForFavoriteGenreNation" resultType="String">
+		SELECT s.movieCd
+		FROM tbl_starrating s
+		WHERE s.userid = #{userid}
+	</select>
+	
+	<select id="getGenreAltForFavoriteGenre" resultType="String">
+		SELECT m.genreAlt
+		FROM tbl_starrating s
+		JOIN tbl_movie m
+		ON (s.movieCd = m.movieCd)
+		WHERE s.userid = #{userid} AND REPLACE(genreAlt, ' ','') IS NOT NULL
+	</select>
+	
+	<!-- /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// -->
+
+	
+<!-- 	BindingException: Parameter 'list' not found. Available parameters are [movieCdList, userid, param1, param2] -->
+	<select id="getFavoriteGenreScore" parameterType="java.util.List" resultType="com.moviepedia.domain.FavoriteGenreNationDTO">
+	
+		SELECT ft.genre, ft.cntStarRating, ft.scaleCntStarRating, ft.scaleAvgStarRating, ft.scaleratioCntRatingCntGenre, ft.finalScore
+		FROM (
+			SELECT iv4.genre, iv4.cntStarRating, 
+				iv4.scaleCntStarRating, iv4.scaleAvgStarRating, iv4.scaleratioCntRatingCntGenre,
+			    ROUND((iv4.scaleCntStarRating * 0.65 + iv4.scaleAvgStarRating * 0.15 + iv4.scaleratioCntRatingCntGenre * 0.20) * 100, 0) AS finalScore
+			FROM (
+			    SELECT iv3.genre,
+				    iv3.avgStarRating,
+			        CASE <!-- 특정 컬럼의 데이터 개수 1개이거나 모든 데이터 값이 같은 경우 scale 결과값 1 통일 
+			        		-> 최종 순위는 정규화 결과값의 가중평균한 결과로 정렬되므로 scale값이 얼마든 최종 순위엔 영향 없음 -->
+			        WHEN MAX(iv3.avgStarRating) OVER() - MIN(iv3.avgStarRating) OVER() = 0 THEN 1
+			        ELSE (iv3.avgStarRating - MIN(iv3.avgStarRating) OVER()) / (MAX(iv3.avgStarRating) OVER() - MIN(iv3.avgStarRating) OVER()) 
+			        END AS scaleAvgStarRating,
+			        iv3.cntStarRating,
+			        CASE
+			        WHEN MAX(iv3.cntStarRating) OVER() - MIN(iv3.cntStarRating) over() = 0 THEN 1
+			        ELSE (iv3.cntStarRating - MIN(iv3.cntStarRating) OVER()) / (MAX(iv3.cntStarRating) OVER() - MIN(iv3.cntStarRating) over())
+			        END AS scaleCntStarRating,
+			        (iv3.cntStarRating/iv3.totalCntGenre) AS ratioCntRatingCntGnere,
+			        CASE
+			        WHEN MAX((iv3.cntStarRating/iv3.totalCntGenre)) OVER() - MIN((iv3.cntStarRating/iv3.totalCntGenre)) over() = 0 THEN 1
+			        ELSE ((iv3.cntStarRating/iv3.totalCntGenre) - MIN((iv3.cntStarRating/iv3.totalCntGenre)) OVER()) / (MAX((iv3.cntStarRating/iv3.totalCntGenre)) OVER() - MIN((iv3.cntStarRating/iv3.totalCntGenre)) over())
+			        END AS scaleratioCntRatingCntGenre   
+			    FROM (
+			        SELECT DISTINCT iv2.genre, 
+			            (SELECT COUNT(sm.genreAlt) FROM tbl_movie sm WHERE sm.genreAlt LIKE '%'||iv2.genre||'%') as totalCntGenre,
+			            COUNT(iv2.starRating) OVER(PARTITION BY iv2.genre) AS cntStarRating,
+			            AVG(iv2.starRating) OVER(PARTITION BY iv2.genre) AS avgStarRating
+			        FROM (
+		        	<foreach collection="movieCdList" item="movieCd" separator="UNION">
+		        	<!-- Collection의 속성값을 임의의 파라미터명으로 지정하려면 입력변수에 @Param 어노테이션 지정 필수 -->
+			            SELECT iv1.movieCd, iv1.genreAlt, iv1.starRating, REPLACE(REGEXP_SUBSTR(iv1.genreAlt, '[^,]+', 1, level),' ','') AS genre
+			            FROM (
+			                SELECT s.movieCd, s.starRating, m.genreAlt
+			                FROM tbl_starrating s
+			                JOIN tbl_movie m
+			                ON (s.movieCd = m.movieCd)
+			                WHERE s.userid = #{userid} AND m.movieCd = #{movieCd}
+			            ) iv1	             
+			            CONNECT BY REGEXP_SUBSTR(iv1.genreAlt, '[^,]+', 1, level) IS NOT NULL
+		        	</foreach>
+			        ) iv2
+			        WHERE iv2.genre IS NOT NULL  
+			    ) iv3
+			) iv4
+			ORDER BY finalScore DESC	
+		) ft
+		WHERE  ft.finalScore &gt; 0 <!-- finalScore 0이면 선호한다 할 수 없으므로.. -->
+		AND ROWNUM BETWEEN 1 AND 10 <!-- ROWNUM은 ORDER BY 이전에 매겨지므로 서브쿼리에서 정렬 후 ROWNUM 지정해 원하는 구간만 가져옴 -->
+		
+	</select>
+	
+	
+	
+	<select id="getFavoriteGenreScore2" parameterType="java.util.List" resultType="com.moviepedia.domain.FavoriteGenreNationDTO">
+	
+		
+       SELECT DISTINCT iv2.genre, 
+           (SELECT COUNT(sm.genreAlt) FROM tbl_movie sm WHERE sm.genreAlt LIKE '%'||iv2.genre||'%') as totalCntGenre
+<!--            COUNT(iv2.starRating) OVER(PARTITION BY iv2.genre) AS cntStarRating, -->
+<!--            AVG(iv2.starRating) OVER(PARTITION BY iv2.genre) AS avgStarRating -->
+       FROM (
+      	<foreach collection="movieCdList" item="movieCd" separator="UNION">
+      	<!-- Collection의 속성값을 임의의 파라미터명으로 지정하려면 입력변수에 @Param 어노테이션 지정 필수 -->
+           SELECT iv1.movieCd, iv1.genreAlt, iv1.starRating, REPLACE(REGEXP_SUBSTR(iv1.genreAlt, '[^,]+', 1, level),' ','') AS genre
+           FROM (
+               SELECT s.movieCd, s.starRating, m.genreAlt
+               FROM tbl_starrating s
+               JOIN tbl_movie m
+               ON (s.movieCd = m.movieCd)
+               WHERE s.userid = #{userid} AND m.movieCd = #{movieCd}
+           ) iv1	             
+           CONNECT BY REGEXP_SUBSTR(iv1.genreAlt, '[^,]+', 1, level) IS NOT NULL
+      	</foreach>
+       ) iv2
+       WHERE iv2.genre IS NOT NULL  
+			   
+		
+	</select>
+	
+	<!-- /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// -->
+	
+	<!-- 선호 국가는 repNationNm 기준으로 선정 cf) 장르는 genreAlt 기준 -->
+	<select id="getFavoriteNationScore" parameterType="java.util.List" resultType="com.moviepedia.domain.FavoriteGenreNationDTO">
+	
+		SELECT ft.nation, ft.cntStarRating, ft.finalScore, ft.scaleCntStarRating,ft.scaleAvgStarRating, ft.scaleratioCntRatingCntGenre
+		FROM (
+			SELECT iv4.nation, iv4.cntStarRating, iv4.scaleCntStarRating, iv4.scaleAvgStarRating, iv4.scaleratioCntRatingCntGenre,
+			    ROUND((iv4.scaleCntStarRating * 0.60 + iv4.scaleAvgStarRating * 0.15 + iv4.scaleratioCntRatingCntGenre * 0.25) * 100, 0) AS finalScore
+			FROM (
+			    SELECT iv3.nation,
+				    iv3.avgStarRating,
+			        CASE <!-- 특정 컬럼의 데이터 개수 1개이거나 모든 데이터 값이 같은 경우 scale 결과값 1 통일 
+			        		-> 최종 순위는 정규화 결과값의 가중평균한 결과로 정렬되므로 scale값이 얼마든 최종 순위엔 영향 없음 -->
+			        WHEN MAX(iv3.avgStarRating) OVER() - MIN(iv3.avgStarRating) OVER() = 0 THEN 1
+			        ELSE (iv3.avgStarRating - MIN(iv3.avgStarRating) OVER()) / (MAX(iv3.avgStarRating) OVER() - MIN(iv3.avgStarRating) OVER()) 
+			        END AS scaleAvgStarRating,
+			        iv3.cntStarRating,
+			        CASE
+			        WHEN MAX(iv3.cntStarRating) OVER() - MIN(iv3.cntStarRating) over() = 0 THEN 1
+			        ELSE (iv3.cntStarRating - MIN(iv3.cntStarRating) OVER()) / (MAX(iv3.cntStarRating) OVER() - MIN(iv3.cntStarRating) over())
+			        END AS scaleCntStarRating,
+			        (iv3.cntStarRating/iv3.totalCntGenre) AS ratioCntRatingCntGnere,
+			        CASE
+			        WHEN MAX((iv3.cntStarRating/iv3.totalCntGenre)) OVER() - MIN((iv3.cntStarRating/iv3.totalCntGenre)) over() = 0 THEN 1
+			        ELSE ((iv3.cntStarRating/iv3.totalCntGenre) - MIN((iv3.cntStarRating/iv3.totalCntGenre)) OVER()) / (MAX((iv3.cntStarRating/iv3.totalCntGenre)) OVER() - MIN((iv3.cntStarRating/iv3.totalCntGenre)) over())
+			        END AS scaleratioCntRatingCntGenre   
+			    FROM (
+			        SELECT DISTINCT iv2.nation, 
+			            <!-- (SELECT COUNT(sm.nationAlt) FROM tbl_movie sm WHERE sm.nationAlt LIKE '%'||iv2.nation||'%') as totalCntGenre, -->
+			            (SELECT COUNT(sm.repNationNm) FROM tbl_movie sm WHERE sm.repNationNm LIKE '%'||iv2.nation||'%') as totalCntGenre,
+			            COUNT(iv2.starRating) OVER(PARTITION BY iv2.nation) AS cntStarRating,
+			            AVG(iv2.starRating) OVER(PARTITION BY iv2.nation) AS avgStarRating
+			        FROM (
+			        	SELECT s.movieCd, s.starRating, m.repNationNm as nation
+		                FROM tbl_starrating s
+		                JOIN tbl_movie m
+		                ON (s.movieCd = m.movieCd)
+		                WHERE s.userid = #{userid}
+		        	<!-- <foreach collection="movieCdList" item="movieCd" separator="UNION">
+		        	Collection의 속성값을 임의의 파라미터명으로 지정하려면 입력변수에 @Param 어노테이션 지정 필수
+			            SELECT iv1.movieCd, iv1.nationAlt, iv1.starRating, REPLACE(REGEXP_SUBSTR(iv1.nationAlt, '[^,]+', 1, level),' ','') AS nation
+			            FROM (
+			                SELECT s.movieCd, s.starRating, m.nationAlt
+			                FROM tbl_starrating s
+			                JOIN tbl_movie m
+			                ON (s.movieCd = m.movieCd)
+			                WHERE s.userid = #{userid} AND m.movieCd = #{movieCd}
+			            ) iv1	             
+			            CONNECT BY REGEXP_SUBSTR(iv1.nationAlt, '[^,]+', 1, level) IS NOT NULL
+		        	</foreach> -->
+			        ) iv2
+			        WHERE iv2.nation IS NOT NULL  
+			    ) iv3
+			) iv4
+			ORDER BY finalScore DESC	
+		) ft
+		WHERE  ft.finalScore &gt; 0 <!-- score 0이면 선호한다 할 수 없으므로.. -->
+		AND ROWNUM BETWEEN 1 AND 6 <!-- ROWNUM은 ORDER BY 이전에 매겨지므로 서브쿼리에서 정렬 후 ROWNUM 지정해 원하는 구간만 가져옴 -->
+		
+	</select>
+	
+	<select id="getTotalShowTm" resultType="com.moviepedia.domain.TotalShowTmAnalysisDTO">
+		SELECT COUNT(1) AS cntStarRating, ROUND(SUM(m.showTm) / 60, 0) AS totalShowTm
+		FROM tbl_starRating s
+		JOIN tbl_movie m
+		ON (s.movieCd = m.movieCd)
+		WHERE s.userid = #{userid}
+
+	</select>
+	
+	
+	<resultMap type="com.moviepedia.domain.CommentInfoDTO" id="commentInfoDTO">
+	
+		<result property="userName" column="username"/>
+		<result property="randomString" column="randomstring"/>
+		
+		
+		<result property="movieNm" column="movieNm"/>
+		<result property="posterUrl" column="posterUrl"/>
+		<result property="prdtYear" column="prdtYear"/>
+		<result property="openDt" column="openDt"/>
+		<result property="directorDetail" column="directorDetail"/>
+		<result property="repNationNm" column="repNationNm"/>
+		<result property="repGenreNm" column="repGenreNm"/>
+		
+		<result property="userStarRating" column="userStarRating"/>
+		
+		<result property="likeCd" column="likeCd"/>
+		
+		<result property="cntUserStarRating" column="cntUserStarRating"/>
+		<result property="avgUserStarRating" column="avgUserStarRating"/>
+
+		<association property="commentVO" javaType="com.moviepedia.domain.CommentVO">
+			<id property="commentCd" column="commentcd"/>
+			
+			<result property="movieCd" column="moviecd"/>
+			<result property="userid" column="userid"/>
+			<result property="contents" column="contents"/>
+			<result property="commentDate" column="commentdate"/>
+			<result property="updateDate" column="updatedate"/>
+			<result property="replyCnt" column="replycnt"/>
+			<result property="likeCnt" column="likecnt"/>
+		</association>
+	</resultMap>
+	
+<!-- 	 resultType="com.moviepedia.domain.CommentInfoDTO" -->
+	<select id="getUserCommentList" resultMap="commentInfoDTO">
+		SELECT ft.userid, ft.commentCd, ft.movieCd, ft.contents, ft.updateDate, ft.commentDate, ft.replyCnt, ft.likeCnt
+                , ft.userName, ft.randomString
+              	, ft.movieNm, ft.posterUrl, ft.prdtYear, ft.openDt, ft.directorDetail, ft.repNationNm, ft.repGenreNm
+                , ft.starrating AS userStarRating
+                , (SELECT ssl.likeCd FROM tbl_like ssl WHERE ssl.userid = #{loginUserid} AND ssl.commentCd = ft.commentCd)
+                	AS likeCd
+		FROM (
+		    SELECT ROWNUM AS sequence, iv2.* 
+		    FROM (
+		        SELECT  iv1.*
+		        FROM (
+		            SELECT  c.userid, c.commentCd, c.movieCd, c.contents, c.updateDate, c.commentDate, c.replyCnt, c.likeCnt
+		                , mem.userName, mem.randomString
+	               		, m.movieNm, m.posterUrl, m.prdtYear, m.openDt, m.directorDetail, m.repNationNm, m.repGenreNm
+		                , s.starrating
+		                , (SELECT ROUND(AVG(ss.starRating),1) FROM tbl_starRating ss WHERE ss.movieCd = m.movieCd) AS avgStarRating
+		            FROM tbl_comment c
+		            JOIN tbl_member mem
+		            ON (c.userid = mem.userid)
+		            JOIN tbl_movie m
+		            ON (c.movieCd = m.movieCd)
+		            LEFT OUTER JOIN tbl_starRating s
+		            ON (c.userid = s.userid AND c.movieCd = s.movieCd)          
+		            WHERE mem.randomString = #{randomString}
+		        ) iv1
+        <choose>
+			<when test="orderBy== 0">
+				ORDER BY iv1.updateDate DESC
+			</when>
+			<when test="orderBy == 1">
+				ORDER BY iv1.likeCnt DESC, iv1.updateDate DESC
+			</when>
+			<when test="orderBy == 2">
+				ORDER BY iv1.starRating DESC NULLS LAST, iv1.updateDate DESC
+			</when>
+			<when test="orderBy == 3">
+				ORDER BY iv1.starRating ASC NULLS LAST, iv1.updateDate DESC
+			</when>
+			<when test="orderBy == 4">
+				ORDER BY iv1.avgStarRating DESC NULLS LAST, iv1.updateDate DESC
+			</when>
+			<when test="orderBy == 5">
+				ORDER BY iv1.openDt DESC NULLS LAST, iv1.updateDate DESC
+			</when>
+		</choose>
+		    ) iv2
+		) ft    
+		WHERE ft.sequence BETWEEN #{currentSqnc} + 1 AND #{currentSqnc} + #{additionalCnt}
+	</select>
+	
+	
+	<resultMap type="com.moviepedia.domain.MovieWithStarDTO" id="movieWithStarDTO">
+		
+		<id property="movieCd" column="moviecd"/>
+		<result property="movieNm" column="movieNm"/>
+		<result property="posterUrl" column="posterUrl"/>
+		
+		<result property="userStarRating" column="userStarRating"/>
+		
+		
+<!-- 		<association property="movieVO" javaType="com.moviepedia.domain.MovieVO"> -->
+			
+<!-- 			<result property="movieCd" column="moviecd"/> -->
+<!-- 			<result property="movieNm" column="movieNm"/> -->
+<!-- 			<result property="posterUrl" column="posterUrl"/> -->
+		
+<!-- 		</association> -->
+	</resultMap>
+	<!-- resultMap="movieWithStarDTO" -->
+	<select id="getUserMovieList" resultType="com.moviepedia.domain.MovieWithStarDTO">
+		SELECT ft.movieCd, ft.movieNm, ft.posterUrl, ft.starRating AS userStarRating
+		FROM (
+		    SELECT ROWNUM AS sequence, iv2.* 
+		    FROM (
+		        SELECT  iv1.*
+		        FROM (
+	          		SELECT s.movieCd, s.starRating, s.starRatingDate
+		                , m.movieNm, m.posterUrl, m.openDt, m.showTm
+		                ,(SELECT ROUND(AVG(ss.starRating),1) FROM tbl_starRating ss WHERE ss.movieCd = s.movieCd) AS avgStarRating
+		                ,(SELECT COUNT(ss.starRating) FROM tbl_starRating ss WHERE ss.movieCd = s.movieCd) AS cntStarRating
+		            FROM tbl_starRating s
+		            JOIN tbl_member mem
+		            ON (s.userid = mem.userid)
+		            JOIN tbl_movie m
+		            ON (s.movieCd = m.movieCd)
+		            WHERE mem.randomString = #{randomString}
+		        ) iv1
+        <choose>
+			<when test="orderBy== 0">
+				ORDER BY iv1.starRatingDate DESC
+			</when>
+			<when test="orderBy == 1">
+				ORDER BY iv1.starRatingDate ASC
+			</when>
+			<when test="orderBy == 2">
+				ORDER BY iv1.starRating DESC, iv1.starRatingDate DESC
+			</when>
+			<when test="orderBy == 3">
+				ORDER BY iv1.starRating ASC, iv1.starRatingDate DESC
+			</when>
+			<when test="orderBy == 4">
+				 ORDER BY iv1.avgStarRating DESC, iv1.starRatingDate DESC
+			</when>
+			<when test="orderBy == 5">
+				ORDER BY iv1.openDt DESC NULLS LAST, iv1.starRatingDate DESC
+			</when>
+			<when test="orderBy == 6">
+				ORDER BY iv1.showTm ASC NULLS LAST, iv1.starRatingDate DESC
+			</when>
+			<when test="orderBy == 7">
+				ORDER BY iv1.cntStarRating DESC, iv1.starRatingDate DESC
+			</when>
+		</choose>
+		    ) iv2
+		) ft    
+		WHERE ft.sequence BETWEEN #{currentSqnc} + 1 AND #{currentSqnc} + #{additionalCnt}
+	</select>
+	
+	<update id="updateFavoritePeopleGenre">
+		UPDATE tbl_member m
+		<choose>
+			<when test="category.equals('감독')">
+				SET m.favoriteDirectorList = #{cateValue}
+			</when>
+			<when test="category.equals('배우')">
+				SET m.favoriteActorList = #{cateValue}
+			</when>
+			<when test="category.equals('장르')">
+				SET m.favoriteGenreList = #{cateValue}
+			</when>
+		</choose>
+		WHERE m.userid = #{userid}
+		
+	</update>
+
+</mapper>

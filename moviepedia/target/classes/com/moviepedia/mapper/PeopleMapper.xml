@@ -1,0 +1,389 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.moviepedia.mapper.PeopleMapper">
+
+<select id="getList" resultType="com.moviepedia.domain.PeopleVO">
+	SELECT * FROM tbl_people WHERE directorFilmos LIKE '%'||#{movieCd}||'%' 
+		OR actorFilmos LIKE '%'||#{movieCd}||'%'
+</select>
+
+<select id="read" resultType="com.moviepedia.domain.PeopleVO">
+
+	SELECT * FROM tbl_people WHERE peopleCd = #{peopleCd}
+	
+</select>
+
+
+<select id="readByPeopleNm" resultType="com.moviepedia.domain.PeopleVO">
+
+	SELECT * FROM tbl_people WHERE peopleNm = #{peopleNm}
+	
+</select>
+
+<select id="readBypeopleNmMovieCd" resultType="com.moviepedia.domain.PeopleVO">
+
+	SELECT * 
+	FROM tbl_people 
+	WHERE peopleNm = #{peopleNm}
+		AND (directorFilmos LIKE '%'||#{movieCd}||'%' 
+			OR actorFilmos LIKE '%'||#{movieCd}||'%')
+	
+</select>
+
+<update id="insertPeopleList" parameterType="java.util.List">
+	MERGE INTO tbl_people p
+   	USING (
+        <foreach collection="list" item="people"  separator="UNION">
+           SELECT 
+           	   #{people.peopleCd} AS peopleCd,
+               #{people.peopleNm} AS peopleNm,
+               #{people.peopleNmEn} AS peopleNmEn,
+               #{people.sex} AS sex,
+               #{people.repRoleNm} AS repRoleNm,
+               #{people.directorFilmos} AS directorFilmos,
+               #{people.actorFilmos} AS actorFilmos
+           FROM DUAL
+        </foreach>
+    ) d
+    ON (p.peopleCd = d.peopleCd)
+    WHEN MATCHED THEN
+   		UPDATE SET 
+   			p.peopleNm = d.peopleNm,
+            p.peopleNmEn = d.peopleNmEn,
+            p.sex = d.sex,
+            p.repRoleNm = d.repRoleNm,
+            p.directorFilmos = d.directorFilmos,
+            p.actorFilmos = d.actorFilmos,
+            p.updateDate = sysdate
+  	WHEN NOT MATCHED THEN
+	    INSERT (
+	        p.peopleCd,
+	        p.peopleNm,
+	        p.peopleNmEn,
+	        p.sex,
+	        p.repRoleNm,
+	        p.directorFilmos,
+	        p.actorFilmos,
+	        p.updateDate
+	    )
+	    VALUES (
+	       	d.peopleCd,
+	        d.peopleNm,
+	        d.peopleNmEn,
+	        d.sex,
+	        d.repRoleNm,
+	        d.directorFilmos,
+	        d.actorFilmos,
+	        sysdate
+	    )	       
+  
+</update>
+
+	<resultMap type="com.moviepedia.domain.PeopleInfoDTO" id="PeopleInfoDTOMap">
+	
+		<id property="peopleCd" column="peoplecd"/>
+		
+		<result property="peopleNm" column="peoplenm"/>
+		<result property="peopleNmEn" column="peoplenmen"/>
+		<result property="repRoleNm" column="reprolenm"/>
+			
+		<collection property="movieWithStarDTOList" resultMap="movieWithStarDTOMap"></collection>
+	
+	</resultMap>
+	
+	<resultMap type="com.moviepedia.domain.MovieWithStarDTO" id="movieWithStarDTOMap">
+		<id property="movieCd" column="moviecd"/>
+			
+		<result property="movieNm" column="movienm"/>
+		<result property="posterUrl" column="posterurl"/>
+		<result property="prdtYear" column="prdtyear"/>
+		<result property="repGenreNm" column="repgenrenm"/>
+		<result property="repNationNm" column="repNationNm"/>
+			
+		<result property="avgStarRating" column="avgstarrating"/>
+		<result property="userStarRating" column="userstarrating"/>
+		
+<!-- 		<association property="movieVO" javaType="com.moviepedia.domain.MovieVO"> -->
+<!-- 			<id property="movieCd" column="moviecd"/> -->
+			
+<!-- 			<result property="movieNm" column="movienm"/> -->
+<!-- 			<result property="posterUrl" column="posterurl"/> -->
+<!-- 			<result property="prdtYear" column="prdtyear"/> -->
+<!-- 			<result property="repGenreNm" column="repgenrenm"/> -->
+<!-- 			<result property="repNationNm" column="repNationNm"/> -->
+<!-- 		</association> -->
+	</resultMap>
+
+	<select id="getPeopleDirectorFilmoList" resultMap="PeopleInfoDTOMap">
+		SELECT ft.peopleCd, ft.peopleNm, ft.peopleNmEn, ft.repRoleNm, m.movieCd, m.movieNm, m.posterUrl, m.prdtYear, m.repGenreNm, m.repNationNm
+		    , ROUND(AVG(s.starRating) ,1) AS avgStarRating
+		    ,(SELECT ss.starRating FROM tbl_starRating ss WHERE ss.userid = #{userid} AND ss.movieCd = m.movieCd) AS userStarRating
+		FROM (
+		    SELECT iv.peopleCd, iv.peopleNm, iv.peopleNmEn, iv.repRoleNm, REGEXP_SUBSTR(iv.directorFilmos, '[^,]+', 1, LEVEL) directorFilmo
+		    FROM (
+		        SELECT p.peopleCd, p.peopleNm, p.peopleNmEn, p.repRoleNm, p.directorFilmos, p.actorFilmos FROM tbl_people p WHERE p.peopleCd = #{peopleCd}
+		    ) iv
+		   
+		    CONNECT BY	REGEXP_SUBSTR(iv.directorFilmos, '[^,]+', 1, LEVEL) IS NOT NULL
+		) ft    
+		INNER JOIN tbl_movie m /* Movie 테이블에 등록된 영화만 */
+		ON (ft.directorFilmo = m.movieCd)
+		LEFT OUTER JOIN tbl_starRating s
+		ON (m.movieCd = s.movieCd)
+		GROUP BY ft.peopleCd, ft.peopleNm, ft.peopleNmEn, ft.repRoleNm, m.movieCd, m.movieNm, m.posterUrl, m.prdtYear, m.repGenreNm, m.repNationNm
+		ORDER BY m.prdtYear DESC
+	
+	</select>	
+	
+	<select id="getPeopleActorFilmoList" resultMap="PeopleInfoDTOMap">
+		SELECT ft.peopleCd, ft.peopleNm, ft.peopleNmEn, ft.repRoleNm, m.movieCd, m.movieNm, m.posterUrl, m.prdtYear, m.repGenreNm, m.repNationNm
+		    , ROUND(AVG(s.starRating) ,1) AS avgStarRating
+		    ,(SELECT ss.starRating FROM tbl_starRating ss WHERE ss.userid = #{userid} AND ss.movieCd = m.movieCd) AS userStarRating
+		FROM (
+		    SELECT iv.peopleCd, iv.peopleNm, iv.peopleNmEn, iv.repRoleNm, REGEXP_SUBSTR(iv.actorFilmos, '[^,]+', 1, level) directorFilmo
+		    FROM (
+		        SELECT p.peopleCd, p.peopleNm, p.peopleNmEn, p.repRoleNm, p.directorFilmos, p.actorFilmos FROM tbl_people p WHERE p.peopleCd = #{peopleCd}
+		    ) iv
+		   
+		    CONNECT BY	REGEXP_SUBSTR(iv.actorFilmos, '[^,]+', 1, level) IS NOT NULL
+		) ft    
+		INNER JOIN tbl_movie m /* Movie 테이블에 등록된 영화만 */
+		ON (ft.directorFilmo = m.movieCd)
+		LEFT OUTER JOIN tbl_starRating s
+		ON (m.movieCd = s.movieCd)
+		GROUP BY ft.peopleCd, ft.peopleNm, ft.peopleNmEn, ft.repRoleNm, m.movieCd, m.movieNm, m.posterUrl, m.prdtYear, m.repGenreNm, m.repNationNm
+		ORDER BY m.prdtYear DESC
+	</select>
+
+
+
+
+	<update id="updateDirectorRepMovieList">
+		
+	<!-- 	<selectKey keyProperty="repMovieList" resultType="java.lang.String" order="BEFORE"> -->
+		<selectKey keyProperty="repMovieList" resultType="com.moviepedia.domain.PeopleVO" order="BEFORE">
+		
+			SELECT LISTAGG(ft.movieCd ||'|'|| ft.movieNm, ',') WITHIN GROUP (ORDER BY ft.movieCd) AS repMovieList
+	<!-- 			, SYSDATE AS repMovieListDate -->
+			FROM (
+			    SELECT  iv2.peopleCd, iv2.peopleNm, iv2.repRoleNm, iv2.updateDate, m.movieCd, m.movieNm
+			         , COUNT(s.starRating)  AS cntStarRating
+			        , ROUND(AVG(s.starRating) , 1) AS avgStarRating
+			        
+			    FROM (
+			        SELECT iv1.peopleCd, iv1.peopleNm, iv1.repRoleNm, iv1.updateDate
+			            , REGEXP_SUBSTR(iv1.directorFilmos, '[^,]+', 1, level) directorFilmo
+			        FROM (
+			            SELECT p.peopleCd, p.peopleNm, p.repRoleNm, p.directorFilmos, p.updateDate
+			            FROM tbl_people p
+			            WHERE peopleCd = #{peopleCd}
+			        ) iv1
+			        CONNECT BY	REGEXP_SUBSTR(iv1.directorFilmos, '[^,]+', 1, level) IS NOT NULL
+			    ) iv2    
+			    INNER JOIN tbl_movie m /* Movie 테이블에 있는 영화만 출력 */
+			    ON (iv2.directorFilmo = m.movieCd)
+			    LEFT OUTER JOIN tbl_starRating s
+			    ON (m.movieCd = s.movieCd)
+			    GROUP BY iv2.peopleCd, iv2.peopleNm, iv2.repRoleNm, iv2.updateDate, m.movieCd, m.movieNm
+			    ORDER BY cntStarRating DESC, NVL(avgStarRating,0) DESC, updateDate ASC
+			) ft    
+			WHERE ROWNUM BETWEEN 1 AND 2
+			
+		</selectKey>
+		
+		
+			UPDATE tbl_people 
+			SET 
+			    repMovieList = #{repMovieList}, 
+			    repMovieListDate = NVL2(#{repMovieList}, SYSDATE, NULL)
+	<!-- 	    	<if test="repMovieList != null">문법에러 발생 -->
+	<!-- 	    	<if test="#{repMovieList} != null">에러발생하지 않으나 원하는결과x.문법오류같음 -->
+	<!-- 	    	<if test="#{repMovieList != null} ">에러발생하지 않으나 원하는결과x.문법오류같음 -->
+	<!-- 	    		repMovieListDate = SYSDATE -->
+	<!-- 	    	</if> -->
+			    
+		<!-- 	    repMovieListDate = #{repMovieListDate} -->
+			WHERE peopleCd = #{peopleCd}    
+		
+		
+	
+	
+	</update>
+	
+	<update id="updateActorRepMovieList">
+		
+			<selectKey keyProperty="repMovieList" resultType="java.lang.String" order="BEFORE">
+	<!-- 	<selectKey keyProperty="repMovieList" resultType="com.moviepedia.domain.PeopleVO" order="BEFORE"> -->
+	<!-- 	<selectKey keyProperty="repMovieList,repMovieListDate" resultType="hashmap" order="BEFORE"> -->
+			<!-- resultType 모두 가능 -->
+			
+			SELECT LISTAGG(ft.movieCd ||'|'|| ft.movieNm, ',') WITHIN GROUP (ORDER BY ROWNUM) AS repMovieList
+			    /* LISTAGG : ROWNUM으로 정렬한 것임을 인지. ft에서 최종 정렬한대로 출력하기 위함 */
+			FROM (
+			    SELECT ROWNUM, iv4.* 
+			    FROM (
+			        SELECT iv3.peopleNm, iv3.updateDate, iv3.movieCd, iv3.movieNm
+			            ,iv3.commaCnt - REGEXP_COUNT(iv3.actorDetail, ',', iv3.peopleIdx) +1 AS actorOrder
+			            ,iv3.cntStarRating, iv3.avgStarRating
+			            ,iv3.actorDetail
+			        FROM (
+			            SELECT iv2.peopleNm, iv2.updateDate
+			                , m.movieCd, m.movieNm, m.actorDetail
+			                , INSTR(m.actorDetail, iv2.peopleNm) AS peopleIdx
+			                , REGEXP_COUNT(m.actorDetail, ',') AS commaCnt  
+			                , COUNT(s.starRating)  AS cntStarRating
+			                , ROUND(AVG(s.starRating) , 1) AS avgStarRating
+			            FROM (
+			                SELECT iv1.peopleCd, iv1.peopleNm, iv1.updateDate, REGEXP_SUBSTR(iv1.actorFilmos, '[^,]+', 1, level) actorFilmo
+			                FROM (
+			                    SELECT p.peopleCd, p.peopleNm, p.actorFilmos, p.updateDate 
+			                    FROM tbl_people p 
+			                    WHERE p.peopleCd= #{peopleCd}
+			                ) iv1
+			                CONNECT BY REGEXP_SUBSTR(iv1.actorFilmos, '[^,]+', 1, level) IS NOT NULL
+			                /* CONNECT BY는 WHERE 이전에 실행되므로 FROM절이 단일행이 아니면 전체 FULL SCAN하여 연삭속도 극히느려짐 */
+			            ) iv2
+			            INNER JOIN tbl_movie m
+			            ON (iv2.actorFilmo = m.movieCd)
+			            LEFT OUTER JOIN tbl_starRating s
+			            ON (m.movieCd = s.movieCd)
+			            GROUP BY iv2.peopleNm, iv2.updateDate, m.movieCd, m.movieNm, m.actorDetail
+			        ) iv3
+			        WHERE iv3.peopleIdx != 0 /* INSTR()은 찾고자 하는 문자열 없으면 0 반환 */
+			        ORDER BY actorOrder ASC
+			    ) iv4
+			    WHERE ROWNUM BETWEEN 1 AND 4 /* 비중 높은 출연작 2배수 우선 선정 */
+			    ORDER BY iv4.cntStarRating DESC, iv4.avgStarRating DESC, iv4.updateDate ASC /* 이후, 정렬 */
+			) ft
+			WHERE ROWNUM BETWEEN 1 AND 2
+			
+		</selectKey>
+		
+		UPDATE tbl_people p
+		SET 
+		    p.repmovielist = #{repMovieList}, 
+		    p.repmovielistdate = SYSDATE
+		WHERE p.peopleCd = #{peopleCd}    
+	
+	</update>
+	
+	<select id="getRepMovieList" resultType="map">
+		
+		SELECT repMovieList AS "repMovieList", repMovieListDate AS "repMovieListDate"
+		FROM tbl_people
+		WHERE peopleCd = #{peopleCd}
+	
+	</select>
+	
+	
+	<update id="updateActorRoleImportance">
+		
+		<selectKey keyProperty="avgActorRoleImportance,cntActorRoleImportance" resultType="com.moviepedia.domain.PeopleVO" order="BEFORE">
+	<!-- 	<selectKey keyProperty="repMovieList" resultType="com.moviepedia.domain.PeopleVO" order="BEFORE"> -->
+	<!-- 	<selectKey keyProperty="repMovieList,repMovieListDate" resultType="hashmap" order="BEFORE"> -->
+			<!-- resultType 모두 가능 -->
+			
+			<!-- 에러 발생 케이스들  10028189
+				  10045479
+				  10001481
+				  20382645 -->
+			
+		SELECT DISTINCT 
+		    CASE 
+		    WHEN ft.actorRoleImportance = 0 THEN 0
+		    ELSE (ft.cntActorRoleImportance)
+		    END AS cntActorRoleImportance,
+		
+		    AVG(ft.actorRoleImportance) OVER() AS avgActorRoleImportance
+		FROM (
+		
+		    SELECT iv5.*
+		    FROM (
+		        SELECT  iv4.actorRoleImportance, COUNT(iv4.actorRoleImportance) OVER() AS cntActorRoleImportance
+		            ,iv4.cntRow,  SUM(iv4.actorRoleImportance) OVER() AS sumActorRoleImportance
+		        FROM (
+		            SELECT iv3.peopleNm, iv3.updateDate, iv3.movieCd, iv3.movieNm, iv3.peopleIdx,
+		                CASE 
+		                WHEN iv3.peopleIdx = 0 THEN 0
+		                WHEN iv3.peopleIdx IS NULL THEN 0
+		                ELSE iv3.commaCnt - REGEXP_COUNT(iv3.actorDetail, ',', iv3.peopleIdx) +1
+		                END AS actorRoleImportance
+		                , COUNT(1) OVER() AS cntRow /* actorRoleImportance가 0인 행 하나만 존재할 경우 걸러내기 위한 값 */
+		              
+		            FROM (
+		                SELECT iv2.peopleNm, iv2.updateDate
+		                    , m.movieCd, m.movieNm, m.actorDetail
+		                    , INSTR(m.actorDetail, iv2.peopleNm) AS peopleIdx
+		                    , REGEXP_COUNT(m.actorDetail, ',') AS commaCnt  
+		                FROM (
+		                    SELECT iv1.peopleCd, iv1.peopleNm, iv1.updateDate, REGEXP_SUBSTR(iv1.actorFilmos, '[^,]+', 1, level) actorFilmo
+		                    FROM (
+		                        SELECT p.peopleCd, p.peopleNm, p.actorFilmos, p.updateDate 
+		                        FROM tbl_people p 
+		                        WHERE p.peopleCd= #{peopleCd}
+		                    ) iv1
+		                    CONNECT BY REGEXP_SUBSTR(iv1.actorFilmos, '[^,]+', 1, level) IS NOT NULL
+		                    /* CONNECT BY는 WHERE 이전에 실행되므로 FROM절이 단일행이 아니면 전체 FULL SCAN하여 연삭속도 극히느려짐 */
+		                ) iv2
+		               LEFT OUTER JOIN tbl_movie m /* LEFT OUTER JOIN : error) SelectKey returned no data 방지 위해 값 0/null이라도 행을 출력시키기 위함.. */
+		                ON (iv2.actorFilmo = m.movieCd)
+		                /* dWHERE m.actorDetail IS NOT NULL */
+		                GROUP BY iv2.peopleNm, iv2.updateDate, m.movieCd, m.movieNm, m.actorDetail
+		            ) iv3
+		            /* WHERE iv3.peopleIdx != 0 */ /* INSTR()은 찾고자 하는 문자열 없으면 0 반환(우정 출연 등은 누락되는 경우 있는 것 같다) */
+		                /* SELECT절에서 CASE문으로 처리 */
+		            ORDER BY actorRoleImportance ASC /* 비중 기준 정렬 */      
+		        ) iv4
+		       
+		    ) iv5    
+		    WHERE iv5.actorRoleImportance != 
+		        CASE
+		        WHEN iv5.cntRow = 1 AND iv5.actorRoleImportance = 0 THEN -1
+		        WHEN iv5.cntRow != 1 AND iv5.sumActorRoleImportance = 0 THEN -1
+		        ELSE 0
+		        END
+		) ft
+		WHERE ROWNUM BETWEEN 1 AND 10 /* AVG 평균값은 actorOrder 정렬 상위 10개로만 계산 */
+			
+		</selectKey>
+		
+		UPDATE tbl_people p
+		SET 
+			<!-- SELECTKEY 모든 컬럼 null이면 리턴 받지 못한다는 에러 출력 -->
+			p.cntActorRoleImportance = 
+				CASE
+		        WHEN #{cntActorRoleImportance} = 0 THEN NULL
+		        ELSE #{cntActorRoleImportance}
+		        END, 
+		    p.avgActorRoleImportance = 
+		    	CASE
+		        WHEN #{avgActorRoleImportance} = 0 THEN NULL
+		        ELSE #{avgActorRoleImportance}
+		        END
+		WHERE p.peopleCd = #{peopleCd}    
+	
+	</update>
+	
+	<select id="getPeopleListForUpdateRoleImportance" resultType="com.moviepedia.domain.PeopleVO">
+	
+		SELECT ft.*
+		FROM (
+		    SELECT ROWNUM AS rank, iv.*
+		    FROM (
+		        SELECT rownum, peopleCd, peopleNm, actorFilmos
+		        FROM tbl_people
+		        WHERE repRoleNm = '배우' <!-- AND REPLACE(actorFilmos,' ','') IS NOT NULL
+		       		AND avgActorRoleImportance IS NULL -->
+		        ORDER BY updateDate DESC
+		    ) iv
+		) ft
+		<!-- WHERE ft.rank BETWEEN #{currentIdx} + 1 AND #{currentIdx} + 10000 -->
+	</select>
+	
+
+
+
+</mapper>

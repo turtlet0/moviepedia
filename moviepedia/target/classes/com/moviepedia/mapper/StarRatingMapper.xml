@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  
+<mapper namespace="com.moviepedia.mapper.StarRatingMapper">
+	
+	<insert id="insert">
+	
+		INSERT INTO tbl_starRating (movieCd, userid, starRating)
+		VALUES (#{movieCd}, #{userid}, #{starRating})
+		
+	</insert>
+	
+	<select id="read" resultType="com.moviepedia.domain.StarRatingVO">
+	
+		SELECT * FROM tbl_starRating WHERE movieCd = #{movieCd} AND userid = #{userid}
+		
+	</select>
+
+	<delete id="delete">
+	
+		DELETE FROM tbl_starRating WHERE movieCd = #{movieCd} AND userid = #{userid}
+		
+	</delete>
+	
+	<update id="update">
+		
+		UPDATE tbl_starRating SET starRating = #{starRating}, starRatingDate = SYSDATE
+		WHERE movieCd = #{movieCd} AND userid = #{userid}
+		
+	</update>
+	
+
+	<select id="getAvgCntByMovieCd" resultType="hashmap">
+		<!-- resultMap 사용시 404에러발생. 원인 파악 못함-> resultMap은 임의 생성(지정)한 객체로 
+			결과 받을때 사용(ex) Collection 태그 이용 시)  -->
+		<!-- tip) hashmap은 map 인터페이스의 구현 클래스 -->
+		
+		SELECT ROUND(AVG(starRating), 1) "avg", COUNT(starRating) "cnt"
+		FROM tbl_starrating 
+		WHERE movieCd= #{movieCd}
+		
+	</select>
+	
+	<select id="getAvgCntByUserid" resultType="hashmap">
+		<!-- resultMap 사용시 404에러발생. 원인 파악 못함-> resultMap은 임의 생성(지정)한 객체로 
+			결과 받을때 사용 -->
+		<!-- tip) hashmap은 map 인터페이스의 구현 클래스 -->
+		
+		SELECT ROUND(AVG(starRating), 1) "avg", COUNT(starRating) "cnt"
+		FROM tbl_starrating 
+		WHERE userid= #{userid}
+		
+	</select>
+
+	
+	
+	
+<!-- 	<select id="getCountByCommentCd" resultType="int">
+		
+		SELECT COUNT(likeCd) FROM tbl_like WHERE commentCd = #{commentCd}
+		
+	</select> -->
+	
+	<delete id="deleteUserStarRatingList">
+	
+	DELETE FROM tbl_starRating 
+	WHERE userid = #{userid}
+	
+	</delete>
+	
+	
+	<resultMap type="com.moviepedia.domain.StarRatingAnalysisDTO" id="StarRatingAnalysisMap">
+		
+		<id property="movieCd" column="moviecd"/>
+		
+		<result property="starRatingCnt" column="starratingcnt"/>
+		<result property="starRatingAvg" column="starratingavg"/>
+		
+		<collection property="cntByStarDTOList" resultMap="CntByStarDTOMap"></collection>
+	
+	</resultMap>
+	
+	<resultMap type="com.moviepedia.domain.CntByStarDTO" id="CntByStarDTOMap">
+		<result property="star" column="star"/>
+		<result property="starCnt" column="starcnt"/>
+	</resultMap>
+	
+	<select id="getMovieStarRatingAnalysis" resultMap="StarRatingAnalysisMap">
+	
+		SELECT s.movieCd, ROUND(AVG(s.starRating), 1) starratingavg, count(s.starrating) starratingcnt, js.star, js.starCnt
+		FROM tbl_starrating s 
+		LEFT OUTER JOIN (
+		   SELECT movieCd,
+		        CASE starrating
+		        WHEN 0.5 THEN 'cnt0_5' WHEN 1 THEN 'cnt1_0' 
+		        WHEN 1.5 THEN 'cnt1_5' WHEN 2 THEN 'cnt2_0' 
+		        WHEN 2.5 THEN 'cnt2_5' WHEN 3 THEN 'cnt3_0' 
+		        WHEN 3.5 THEN 'cnt3_5' WHEN 4 THEN 'cnt4_0'
+		        WHEN 4.5 THEN 'cnt4_5' WHEN 5 THEN 'cnt5_0'
+		        END AS star,
+		        COUNT(starrating) starCnt
+		    FROM tbl_starrating
+		    GROUP BY movieCd, starrating
+		) js
+		ON (s.movieCd=js.movieCd)
+		WHERE s.movieCd = #{movieCd}
+		GROUP BY s.movieCd, js.star, js.starCnt
+		ORDER BY js.star ASC
+
+	</select>
+
+	
+
+
+</mapper>

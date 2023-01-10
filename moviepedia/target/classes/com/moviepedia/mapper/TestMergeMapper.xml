@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  
+<mapper namespace="com.moviepedia.mapper.TestMergeMapper">
+
+<select id="get" resultType="com.moviepedia.domain.TestMergeVO">
+	SELECT * FROM tbl_test_merge where tpk = 1
+</select>
+
+<update id="testMerge">
+
+MERGE INTO tbl_test_merge m
+USING (
+    SELECT 
+    #{tpk, jdbcType=NUMERIC} AS tpk,
+    #{tnum} AS tnum,
+    #{tname, jdbcType=VARCHAR} AS tname
+    FROM dual
+) d
+ON (m.tpk = d.tpk)
+WHEN MATCHED THEN
+UPDATE SET
+m.tnum = d.tnum,
+m.tname = d.tname
+WHEN NOT MATCHED THEN
+INSERT (m.tpk, m.tnum, m.tname)
+VALUES (d.tpk, d.tnum, d.tname)
+
+</update>
+
+<update id="TestMergeList" parameterType="java.util.List">
+
+	MERGE INTO tbl_test_merge m
+	USING (
+	<foreach collection="list" item="mergeList" separator="UNION ALL">
+	    SELECT 
+	    #{mergeList.tpk} AS tpk,
+	    #{mergeList.tnum} AS tnum,
+	    #{mergeList.tname} AS tname
+	    FROM dual
+	</foreach>
+	) d
+	ON (m.tpk = d.tpk)
+	WHEN MATCHED THEN
+	UPDATE SET
+	m.tnum = d.tnum,
+	m.tname = d.tname
+	WHEN NOT MATCHED THEN
+	INSERT (m.tpk, m.tnum, m.tname)
+	VALUES (d.tpk, d.tnum, d.tname)
+
+</update>
+
+	
+
+</mapper>

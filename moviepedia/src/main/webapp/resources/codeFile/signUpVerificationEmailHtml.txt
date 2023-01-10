@@ -1,0 +1,18 @@
+<div style="background-color: #fff; max-width: 520px; box-sizing: border-box; margin: 0 auto; padding: 24px 20px 31px;">
+	<img src="cid:logo"
+		style="height: 30px; margin-bottom: 29px; vertical-align: top;"
+		loading="lazy">
+	<h1
+		style="line-height: 23px; letter-spacing: -0.7px; color: #000; font-size: 19px; margin: 0;">회원 가입 인증</h1>
+	<hr
+		style="background-color: #a1a1a1; width: 24px; height: 1px; margin: 19px 0 10px; padding: 0; border-width: 0;">
+	<div style="line-height: 24px; color: #4a4a4a; font-size: 16px;">
+		<p style="margin: 11px 0 0;">
+			무비피디아에 회원 가입해주셔서 감사합니다.<br> 아래 인증 번호를 회원가입 페이지 이메일 인증번호 확인란에 입력하여 주세요.
+		</p>
+		<div align="center"
+			style="display: inline-block; background-color: #Ff171e; line-height: 40px; font-size: 17px; font-weight: 500; height: 40px; width: 30%; border-radius: 6px; margin: 0 0 0;">
+			<p style="color: #fff; text-decoration: none; margin: auto auto">validationCode</p>
+		</div>
+	</div>
+</div>
